@@ -14,11 +14,11 @@ network_config: |
 
   auto vmbr0
   iface vmbr0 inet static
-          address 192.168.1.83/24 # Static IP address.
-          gateway 192.168.1.1 # Gateway for the network.
-          bridge-ports ens18 # Bridge interface.
-          bridge-stp off # Disable Spanning Tree Protocol.
-          bridge-fd 0 # Forwarding delay.
+          address 192.168.1.83/24
+          gateway 192.168.1.1
+          bridge-ports ens18
+          bridge-stp off
+          bridge-fd 0
 
 # DNS servers          
 dns_servers:
@@ -162,8 +162,9 @@ additional_locales:
 # User-friendly Bash
 configure_bash: true # Enable custom Bash configurations.
 bash_history_size: 3000 # Set the maximum Bash history size.
+# Custom Bash prompt configuration.
 custom_bash_prompt: >- 
-  \[\033[01;33m\]\u@\h\[\033[00m\]:\[\033[01;32m\]\w\[\033[00m\] \[\033[01;34m\][\#]\[\033[01;31m\]\$\[\033[00m\] # Custom Bash prompt configuration.
+  \[\033[01;33m\]\u@\h\[\033[00m\]:\[\033[01;32m\]\w\[\033[00m\] \[\033[01;34m\][\#]\[\033[01;31m\]\$\[\033[00m\] 
 
 # Download virtio drivers ISO for Windows
 download_windows_guest_tools: false # Download Windows VirtIO drivers ISO.
