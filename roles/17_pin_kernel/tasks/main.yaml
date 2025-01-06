@@ -10,20 +10,30 @@
       when: install_specific_kernel | default(false) | bool and specific_kernel_version is defined
 
     - name: Pin specified Proxmox kernel
-      ansible.builtin.shell: proxmox-boot-tool kernel add {{ pin_kernel_version }} ; echo "Y" | proxmox-boot-tool kernel pin {{ pin_kernel_version }} ; proxmox-boot-tool refresh
+      ansible.builtin.shell: |
+        set -o pipefail
+        proxmox-boot-tool kernel add {{ pin_kernel_version }} ; \
+        echo "Y" | proxmox-boot-tool kernel pin {{ pin_kernel_version }} ; \
+        proxmox-boot-tool refresh
       when: pin_kernel_enabled | default(false) | bool and pin_kernel_version is defined
 
     - name: Unpin all kernels if unpin_kernel_enabled is true
-      ansible.builtin.shell: echo "Y" | proxmox-boot-tool kernel remove {{ unpin_kernel_version }} ; proxmox-boot-tool kernel unpin ; proxmox-boot-tool refresh
+      ansible.builtin.shell: |
+        set -o pipefail
+        echo "Y" | proxmox-boot-tool kernel remove {{ unpin_kernel_version }} ; \
+        proxmox-boot-tool kernel unpin ; \
+        proxmox-boot-tool refresh
       when: unpin_kernel_enabled | default(false) | bool
 
     - name: Get currently running kernel
-      ansible.builtin.shell: uname -r
+      ansible.builtin.command: uname -r
       register: running_kernel
       changed_when: false
 
     - name: Get list of installed proxmox kernels excluding proxmox-ve meta-package
-      ansible.builtin.shell: dpkg --list | grep 'kernel-.*-pve' | awk '{print $2}' | grep -v 'proxmox-ve'
+      ansible.builtin.shell: |
+        set -o pipefail
+        dpkg --list | grep 'kernel-.*-pve' | awk '{print $2}' | grep -v 'proxmox-ve'
       register: installed_kernels
       changed_when: false
 

@@ -48,6 +48,11 @@
     mode: '0644'
   when: nginx_enable
 
+- name: Reload systemd manager configuration
+  ansible.builtin.systemd:
+    daemon_reexec: true
+  changed_when: false
+
 - name: Restart Nginx service
   ansible.builtin.systemd:
     name: nginx

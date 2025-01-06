@@ -17,7 +17,7 @@
     mode: '0755'
 
 - name: Detect CPU vendor
-  ansible.builtin.shell: cat /proc/cpuinfo
+  ansible.builtin.command: cat /proc/cpuinfo
   register: cpu_vendor
   changed_when: false
 

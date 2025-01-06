@@ -1,19 +1,22 @@
 - name: Check if /var/log is in fstab
-  ansible.builtin.shell: grep -q "^tmpfs /var/log tmpfs" /etc/fstab
+  ansible.builtin.command:
+    cmd: grep -q "^tmpfs /var/log tmpfs" /etc/fstab
   register: var_log_in_fstab
   ignore_errors: true
   changed_when: false
   when: move_logs_tmpfs
 
 - name: Check if /var/log/pveproxy is in fstab
-  ansible.builtin.shell: grep -q "^tmpfs /var/log/pveproxy tmpfs" /etc/fstab
+  ansible.builtin.command:
+    cmd: grep -q "^tmpfs /var/log/pveproxy tmpfs" /etc/fstab
   register: pveproxy_log_in_fstab
   ignore_errors: true
   changed_when: false
   when: move_logs_tmpfs
 
 - name: Check if /var/log/nginx is in fstab
-  ansible.builtin.shell: grep -q "^tmpfs /var/log/nginx tmpfs" /etc/fstab
+  ansible.builtin.command:
+    cmd: grep -q "^tmpfs /var/log/nginx tmpfs" /etc/fstab
   register: nginx_log_in_fstab
   ignore_errors: true
   changed_when: false
@@ -29,6 +32,7 @@
 
 - name: Get list of all running services excluding sshd and unnecessary entries
   ansible.builtin.shell: |
+    set -o pipefail
     systemctl list-units --type=service --state=running \
     | awk '/^$/{exit} {print $1}' \
     | grep -Ev "^(ssh|UNIT|LOAD|ACTIVE|SUB|^-)"
@@ -56,6 +60,7 @@
     fstype: tmpfs
     opts: "size={{ tmpfs_logs_size }},mode=0755,noexec,uid=0,gid=0"
     state: mounted
+  register: mount_var_log_task
   when: move_logs_tmpfs and var_log_in_fstab.rc != 0
 
 - name: Mount /var/log/pveproxy as tmpfs
@@ -102,11 +107,7 @@
 
 - name: Restore logs from backup
   ansible.builtin.command: tar -xzf /tmp/log_backup.tar.gz -C /
-  when: move_logs_tmpfs and ansible_facts.mounts | selectattr('mount', 'equalto', '/var/log') | list | length > 0 and var_log_in_fstab.rc != 0
-
-- name: Reload systemd manager configuration
-  ansible.builtin.command: systemctl daemon-reload
-  when: move_logs_tmpfs and var_log_in_fstab.rc != 0
+  when: move_logs_tmpfs and mount_var_log_task is succeeded
 
 - name: Start all previously running services excluding sshd
   ansible.builtin.systemd:

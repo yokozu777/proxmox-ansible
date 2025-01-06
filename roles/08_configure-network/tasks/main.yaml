@@ -44,9 +44,11 @@
   when: dns_servers is defined and dns_servers | length > 0
 
 - name: Restart hostname-related services
-  ansible.builtin.shell: |
-    systemctl restart pveproxy
-    systemctl restart hostname
-    systemctl restart pve-cluster
-    systemctl restart networking
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - pveproxy
+    - pve-cluster
+    - networking
   changed_when: false
