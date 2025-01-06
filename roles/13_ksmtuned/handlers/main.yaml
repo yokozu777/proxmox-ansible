@@ -1,0 +1,4 @@
+- name: Restart ksmtuned
+  ansible.builtin.systemd:
+    name: ksmtuned
+    state: restarted

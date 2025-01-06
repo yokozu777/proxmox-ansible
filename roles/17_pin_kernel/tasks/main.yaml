@@ -1,0 +1,38 @@
+- name: Kernel management tasks
+  notify:
+    - "{{ 'Update GRUB' if boot_mode.stdout.strip() == 'bios' else 'Proxmox Boot Tool Refresh' }}"
+  block:
+    - name: Install specified Proxmox kernel if enabled and version is provided
+      ansible.builtin.apt:
+        name: "proxmox-kernel-{{ specific_kernel_version }}"
+        state: present
+        update_cache: true
+      when: install_specific_kernel | default(false) | bool and specific_kernel_version is defined
+
+    - name: Pin specified Proxmox kernel
+      ansible.builtin.shell: proxmox-boot-tool kernel add {{ pin_kernel_version }} ; echo "Y" | proxmox-boot-tool kernel pin {{ pin_kernel_version }} ; proxmox-boot-tool refresh
+      when: pin_kernel_enabled | default(false) | bool and pin_kernel_version is defined
+
+    - name: Unpin all kernels if unpin_kernel_enabled is true
+      ansible.builtin.shell: echo "Y" | proxmox-boot-tool kernel remove {{ unpin_kernel_version }} ; proxmox-boot-tool kernel unpin ; proxmox-boot-tool refresh
+      when: unpin_kernel_enabled | default(false) | bool
+
+    - name: Get currently running kernel
+      ansible.builtin.shell: uname -r
+      register: running_kernel
+      changed_when: false
+
+    - name: Get list of installed proxmox kernels excluding proxmox-ve meta-package
+      ansible.builtin.shell: dpkg --list | grep 'kernel-.*-pve' | awk '{print $2}' | grep -v 'proxmox-ve'
+      register: installed_kernels
+      changed_when: false
+
+    - name: Filter kernels to remove (excluding the current kernel)
+      ansible.builtin.set_fact:
+        kernels_to_remove: >
+          {{ (installed_kernels.stdout_lines | difference([running_kernel.stdout])) | sort | reverse }}
+
+    - name: Check if there are kernels to remove
+      ansible.builtin.fail:
+        msg: "No old kernels found. Current kernel: {{ running_kernel.stdout }}"
+      when: kernels_to_remove | length == 0

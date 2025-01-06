@@ -1,0 +1,52 @@
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ set_hostname }}"
+
+- name: Remove old hostname entries from /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: "{{ ansible_default_ipv4.address }}.*"
+    state: absent
+  when: ansible_default_ipv4.address is defined
+
+- name: Add hostname to /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ ansible_default_ipv4.address }} {{ set_hostname_fqdn }} {{ set_hostname }}"
+    state: present
+    create: true
+    mode: '0644'
+  when: ansible_default_ipv4.address is defined
+
+- name: Ensure /etc/network/interfaces backup exists
+  ansible.builtin.copy:
+    src: /etc/network/interfaces
+    dest: /etc/network/interfaces.bak
+    mode: '0644'
+    remote_src: true
+  when: configure_network | default(false)
+
+- name: Configure /etc/network/interfaces
+  ansible.builtin.copy:
+    dest: /etc/network/interfaces
+    content: "{{ network_config }}"
+    mode: '0644'
+  when: configure_network | default(false)
+
+- name: Configure DNS servers
+  ansible.builtin.copy:
+    dest: /etc/resolv.conf
+    content: |
+      {% for dns in dns_servers %}
+      nameserver {{ dns }}
+      {% endfor %}
+    mode: '0644'
+  when: dns_servers is defined and dns_servers | length > 0
+
+- name: Restart hostname-related services
+  ansible.builtin.shell: |
+    systemctl restart pveproxy
+    systemctl restart hostname
+    systemctl restart pve-cluster
+    systemctl restart networking
+  changed_when: false

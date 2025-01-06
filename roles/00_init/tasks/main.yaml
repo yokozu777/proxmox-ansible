@@ -1,0 +1,35 @@
+- name: Include host-specific vars
+  ansible.builtin.include_vars: "{{ hostvars[inventory_hostname].vars_file }}"
+
+- name: Set ansible_user and ansible_ssh_pass dynamically
+  ansible.builtin.set_fact:
+    ansible_user: "{{ initial_user }}"
+    ansible_ssh_pass: "{{ initial_password }}"
+
+- name: Gather facts dynamically
+  ansible.builtin.setup:
+    gather_subset: all
+
+- name: Ensure remote_tmp directory exists
+  ansible.builtin.file:
+    path: /root/.ansible/tmp
+    state: directory
+    mode: '0755'
+
+- name: Detect CPU vendor
+  ansible.builtin.shell: lscpu | grep Vendor
+  register: cpu_vendor
+  changed_when: false
+
+- name: Detect boot loader
+  ansible.builtin.shell: "[ -d /sys/firmware/efi ] && echo efi || echo bios"
+  register: boot_mode
+  changed_when: false
+
+- name: Set CPU vendor fact
+  ansible.builtin.set_fact:
+    detected_cpu_vendor: "{{ cpu_vendor.stdout }}"
+
+- name: Set boot mode fact
+  ansible.builtin.set_fact:
+    detected_boot_mode: "{{ boot_mode.stdout }}"

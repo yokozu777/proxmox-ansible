@@ -1,0 +1,58 @@
+- name: Configure global Bash prompt and history size
+  ansible.builtin.blockinfile:
+    path: /etc/bash.bashrc
+    marker: "# {mark} global shell ANSIBLE MANAGED BLOCK"
+    block: |
+      # Ensure Bash Prompt
+      PS1='{{ custom_bash_prompt }}'
+      # Set Bash history size
+      HISTSIZE={{ bash_history_size }}
+      HISTFILESIZE={{ bash_history_size }}
+      # Export variables for history control
+      export HISTSIZE
+      export HISTFILESIZE
+  when: configure_bash | default(false)
+
+- name: Configure global profile for login shells
+  ansible.builtin.blockinfile:
+    path: /etc/profile
+    marker: "# {mark} global shell ANSIBLE MANAGED BLOCK"
+    block: |
+      # Ensure Bash Prompt for Login Shells
+      PS1='{{ custom_bash_prompt }}'
+      # Set Bash history size
+      HISTSIZE={{ bash_history_size }}
+      HISTFILESIZE={{ bash_history_size }}
+      # Export variables for history control
+      export HISTSIZE
+      export HISTFILESIZE
+      # Set system-wide locale
+      export LANG={{ default_locale }}
+      export LC_ALL={{ default_locale }}
+  when: configure_bash | default(false)
+
+- name: Get list of directories in /home
+  ansible.builtin.find:
+    paths: /home
+    file_type: directory
+    depth: 1
+  register: home_dirs
+
+- name: Parse usernames from /home
+  ansible.builtin.set_fact:
+    user_homes: "{{ home_dirs.files | map(attribute='path') | map('basename') | list }}"
+
+- name: Ensure /etc/bash.bashrc is sourced in user .bashrc
+  ansible.builtin.blockinfile:
+    path: "/home/{{ item }}/.bashrc"
+    marker: "# {mark} global shell ANSIBLE MANAGED BLOCK"
+    block: |
+      if [ -f /etc/bash.bashrc ]; then
+          . /etc/bash.bashrc
+      fi
+    create: true
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: '0644'
+  with_items: "{{ user_homes }}"
+  when: configure_bash | default(false)

@@ -1,0 +1,176 @@
+# General
+backup_etc: true # Backup the /etc directory in Proxmox (backup will be available in the current Ansible directory).
+reboot_system: false # Reboot the system after completing all playbooks.
+update_system_now: false # Update the system immediately after completing all playbooks.
+
+# Network configuration
+disable_ipv6: true # Disable IPv6 on the system.
+configure_network: false # Enable custom network configuration.
+network_config: |
+  auto lo
+  iface lo inet loopback
+
+  iface ens18 inet manual
+
+  auto vmbr0
+  iface vmbr0 inet static
+          address 192.168.1.83/24 # Static IP address.
+          gateway 192.168.1.1 # Gateway for the network.
+          bridge-ports ens18 # Bridge interface.
+          bridge-stp off # Disable Spanning Tree Protocol.
+          bridge-fd 0 # Forwarding delay.
+
+# DNS servers          
+dns_servers:
+  - 8.8.8.8 # Primary DNS server.
+  - 8.8.4.4 # Secondary DNS server.
+
+# Set hostname
+set_hostname: pve-73 # Hostname for the Proxmox server.
+set_hostname_fqdn: pve-73.contoso.local # Fully Qualified Domain Name (FQDN).
+
+# Users configuration
+initial_user: root # Initial user for the system.
+initial_password: P@ssw0rd* # Initial user password.
+change_root_password: false # Enable changing the root password.
+new_root_password: P@ssw0rd* # New root password.
+system_user: localuser # Name of the non-root system user.
+enable_system_user_password: true # Enable password authentication for the system user.
+system_user_password: P@ssw0rd* # Password for the system user.
+disable_root_login: false # Disable root login via SSH.
+disable_password_auth: false # Disable password-based SSH authentication.
+pub_keys_folder: pub_keys/ # Folder containing public SSH keys.
+
+# Set timezone and NTP servers
+timezone: Europe/Berlin # Set the system timezone.
+ntp_servers:
+  - 2.pfsense.pool.ntp.org # Primary NTP server.
+  - 1.pfsense.pool.ntp.org # Tertiary NTP server.
+
+# Repository Management
+add_backports_repo: false # Add or remove the Debian backports repository.
+add_pvetest_repo: false # Add or remove the Proxmox test repository.
+system_update_scheduler: false  # Enable automatic system updates.
+update_schedule_time: "6:00"  # Time to install updates (format: HH:MM).
+
+# Kernel Management
+install_specific_kernel: false # Enable installation of a specific kernel version.
+specific_kernel_version: "6.11.0-2-pve-signed" # The specific kernel version to install.
+pin_kernel_enabled: false # Enable pinning a specific kernel version.
+pin_kernel_version: "6.8.12-4-pve" # The kernel version to pin.
+unpin_kernel_enabled: false # Enable unpinning a previously pinned kernel version.
+unpin_kernel_version: "6.8.12-4-pve" # The kernel version to unpin.
+
+# Service management
+apparmor_disable: false # Disable AppArmor.
+fail2ban_enable: false # Install and enable Fail2Ban for security.
+nginx_enable: false # Install and enable Nginx.
+web_show_temperatures: false # Display hardware temperatures in the Proxmox web interface.
+install_stresstest_software: false # Install stress-testing tools like stress-ng.
+install_packages: "" # Specify additional packages to install (e.g., "jq nano").
+uninstall_packages: "" # Specify packages to uninstall.
+
+# SSH configuration
+change_default_ssh_port: false # Enable changing the default SSH port.
+new_ssh_port: 22 # Specify the new SSH port.
+
+# Custom services to disable
+services_to_disable:
+  - name: lxc # LXC service.
+    disable: false
+  - name: spiceproxy # SPICE Proxy service.
+    disable: false
+  - name: pve-ha-crm # Proxmox HA Cluster Manager service.
+    disable: false
+  - name: pve-ha-lrm # Proxmox HA Local Resource Manager service.
+    disable: false
+  - name: lxc-monitord # LXC Monitoring Daemon.
+    disable: false
+  - name: lxc-net # LXC Network service.
+    disable: false
+  - name: lxcfs # LXC File System.
+    disable: false
+  - name: pve-lxc-syscalld # PVE LXC syscall daemon.
+    disable: false
+  - name: corosync # Corosync Cluster Engine.
+    disable: false
+
+# Enable/Disable nested virtualization
+nested_virtualization_enable: true # Enable nested virtualization.
+
+# Enable/Disable Hyper-Threading
+change_smt: false # Enable or disable Hyper-Threading.
+smt: off # Specify "on" or "off" for Hyper-Threading.
+
+# CPU performance configuration
+pstate_performance: true # Enable P-State performance tuning.
+amd_pstate: active # AMD P-State mode (e.g., active, guided).
+intel_pstate: active # Intel P-State mode (e.g., active, passive).
+scaling_governor: schedutil # CPU scaling governor (e.g., schedutil, performance, powersave).
+
+# Create logs RAM disk storage (cleaned after reboot)
+move_logs_tmpfs: false # Enable moving logs to tmpfs (RAM disk).
+tmpfs_logs_size: "400M" # RAM disk size for general logs.
+tmpfs_logs_nginx_size: "400M" # RAM disk size for Nginx logs.
+tmpfs_logs_pveproxy_size: "400M" # RAM disk size for PVE Proxy logs.
+
+# Enable or disable RAM disk storage
+create_ramfs: false # Enable or disable creating a RAM disk.
+ramfs_size: 1000m # RAM disk size (e.g., 200000m for 200GB).
+
+# Set ZFS ARC config in GB
+zfs_arc_min: 1 # Minimum ARC size in GB.
+zfs_arc_max: 1 # Maximum ARC size in GB.
+
+# PCIe passthrough configuration
+pcie_passthrough:
+  blocklist:
+    - radeon # Blacklist Radeon driver.
+    - nouveau # Blacklist Nouveau driver.
+    - nvidia* # Blacklist NVIDIA driver.
+    - i915 # Blacklist Intel integrated graphics driver.
+    - amdgpu # Blacklist AMD GPU driver.
+    - xe # Blacklist Xe graphics driver.
+  ids: # Device IDs for VFIO passthrough.
+    - 10de:1db6
+    - 10de:10f1
+  ids_gpu: # GPU device IDs for VFIO passthrough.
+    - 1002:67df
+    - 1002:aaf0
+
+disable_ksmtuned: false # Disable Kernel Samepage Merging tuning.
+
+# Kernel Samepage Merging (KSM) configuration
+KSM_THRES_COEF: 0 # Percentage of free memory to trigger KSM (default: 20).
+KSM_THRES_CONST: 0 # Free memory threshold in MB to trigger KSM (default: 2048).
+KSM_MONITOR_INTERVAL: 0 # Time interval (seconds) between scans (default: 60).
+KSM_SLEEP_MSEC: 0 # Pause duration (milliseconds) between scans of 16GB blocks (default: 100).
+KSM_NPAGES_MIN: 0 # Minimum number of pages to scan (default: 64).
+KSM_NPAGES_MAX: 0 # Maximum number of pages to scan (default: 1250).
+KSM_NPAGES_BOOST: 0 # Pages to boost when free memory is below threshold (default: 300).
+KSM_NPAGES_DECAY: 0 # Pages to reduce when free memory exceeds threshold (default: -50).
+
+# Max workers, bulk actions in Proxmox
+max_workers: 10 # Set the maximum number of workers for bulk operations in Proxmox.
+
+# Add, change system locales
+add_locales: false # Enable adding or modifying system locales.
+default_locale: "en_US.UTF-8" # Default system locale.
+additional_locales:
+  - "en_US.UTF-8 UTF-8" # Additional locales to generate.
+
+# User-friendly Bash
+configure_bash: true # Enable custom Bash configurations.
+bash_history_size: 3000 # Set the maximum Bash history size.
+custom_bash_prompt: >- 
+  \[\033[01;33m\]\u@\h\[\033[00m\]:\[\033[01;32m\]\w\[\033[00m\] \[\033[01;34m\][\#]\[\033[01;31m\]\$\[\033[00m\] # Custom Bash prompt configuration.
+
+# Download virtio drivers ISO for Windows
+download_windows_guest_tools: false # Download Windows VirtIO drivers ISO.
+
+# ISO Management
+download_custom_images: false # Enable downloading custom ISO images.
+iso_file:
+  - "https://cdn.openbsd.org/pub/OpenBSD/7.6/amd64/floppy76.img" # Example custom ISO file.
+  - "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-12.8.0-amd64-netinst.iso" # Example Debian ISO file.
+storage_path: "/var/lib/vz/template/iso" # Default storage path for ISOs.

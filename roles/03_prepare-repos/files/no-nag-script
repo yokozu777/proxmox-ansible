@@ -1,0 +1,3 @@
+DPkg::Post-Invoke {
+    "dpkg -V proxmox-widget-toolkit | grep -q '/proxmoxlib\\.js$' || { echo 'Removing subscription nag from UI...'; sed -i '/.*data\\.status.*{/{s/!//;s/active/NoMoreNagging/}' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js; };";
+};

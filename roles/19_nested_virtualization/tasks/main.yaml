@@ -1,0 +1,61 @@
+- name: Enable nested virtualization for Intel if CPU is Intel and nested_virtualization_enable is true
+  block:
+    - name: Create /etc/modprobe.d/kvm-intel.conf to enable nested virtualization for Intel
+      ansible.builtin.copy:
+        dest: /etc/modprobe.d/kvm-intel.conf
+        content: "options kvm-intel nested=Y\n"
+        owner: root
+        group: root
+        mode: '0644'
+      when: "nested_virtualization_enable and 'GenuineIntel' in cpu_vendor.stdout"
+
+    - name: Reload kvm-intel module for Intel
+      ansible.builtin.shell: |
+        modprobe -r kvm_intel
+        modprobe kvm_intel
+      when: "nested_virtualization_enable and 'GenuineIntel' in cpu_vendor.stdout"
+
+- name: Enable nested virtualization for AMD if CPU is AMD and nested_virtualization_enable is true
+  block:
+    - name: Create /etc/modprobe.d/kvm-amd.conf to enable nested virtualization for AMD
+      ansible.builtin.copy:
+        dest: /etc/modprobe.d/kvm-amd.conf
+        content: "options kvm-amd nested=1\n"
+        owner: root
+        group: root
+        mode: '0644'
+      when: "nested_virtualization_enable and 'AuthenticAMD' in cpu_vendor.stdout"
+
+    - name: Reload kvm-amd module for AMD
+      ansible.builtin.shell: |
+        modprobe -r kvm_amd
+        modprobe kvm_amd
+      when: "nested_virtualization_enable and 'AuthenticAMD' in cpu_vendor.stdout"
+
+- name: Disable nested virtualization for Intel if CPU is Intel and nested_virtualization_enable is false
+  block:
+    - name: Remove /etc/modprobe.d/kvm-intel.conf to disable nested virtualization for Intel
+      ansible.builtin.file:
+        path: /etc/modprobe.d/kvm-intel.conf
+        state: absent
+      when: "not nested_virtualization_enable and 'GenuineIntel' in cpu_vendor.stdout"
+
+    - name: Reload kvm-intel module to apply changes for Intel
+      ansible.builtin.shell: |
+        modprobe -r kvm_intel
+        modprobe kvm_intel
+      when: "not nested_virtualization_enable and 'GenuineIntel' in cpu_vendor.stdout"
+
+- name: Disable nested virtualization for AMD if CPU is AMD and nested_virtualization_enable is false
+  block:
+    - name: Remove /etc/modprobe.d/kvm-amd.conf to disable nested virtualization for AMD
+      ansible.builtin.file:
+        path: /etc/modprobe.d/kvm-amd.conf
+        state: absent
+      when: "not nested_virtualization_enable and 'AuthenticAMD' in cpu_vendor.stdout"
+
+    - name: Reload kvm-amd module to apply changes for AMD
+      ansible.builtin.shell: |
+        modprobe -r kvm_amd
+        modprobe kvm_amd
+      when: "not nested_virtualization_enable and 'AuthenticAMD' in cpu_vendor.stdout"

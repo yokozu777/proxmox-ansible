@@ -1,0 +1,30 @@
+- name: Install Fail2ban package
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+  when: fail2ban_enable
+
+- name: Copy jail.local configuration file
+  ansible.builtin.copy:
+    src: files/jail.local
+    dest: /etc/fail2ban/jail.local
+    owner: root
+    group: root
+    mode: '0644'
+  when: fail2ban_enable
+
+- name: Copy proxmox.conf filter configuration file
+  ansible.builtin.copy:
+    src: files/proxmox.conf
+    dest: /etc/fail2ban/filter.d/proxmox.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: fail2ban_enable
+
+- name: Restart Fail2ban service
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: restarted
+    enabled: true
+  when: fail2ban_enable

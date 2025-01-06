@@ -1,0 +1,59 @@
+- name: Install nginx package
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+  when: nginx_enable
+
+- name: Remove the default Nginx config file (old version)
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/default
+    state: absent
+  when: nginx_enable
+
+- name: Remove the default Nginx config file (newer versions)
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  when: nginx_enable
+
+- name: Copy the proxmox nginx config file from template
+  ansible.builtin.template:
+    src: proxmox.conf.j2
+    dest: /etc/nginx/conf.d/proxmox.conf
+    owner: root
+    group: root
+    mode: '0644'
+  when: nginx_enable
+
+- name: Check Nginx configuration syntax
+  ansible.builtin.command: nginx -t
+  register: nginx_test
+  failed_when: "'successful' not in nginx_test.stderr"
+  changed_when: false
+  when: nginx_enable
+
+- name: Create systemd override directory for nginx
+  ansible.builtin.file:
+    path: /etc/systemd/system/nginx.service.d
+    state: directory
+    mode: '0755'
+  when: nginx_enable
+
+- name: Create systemd override snippet for nginx
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/nginx.service.d/override.conf
+    content: |
+      [Unit]
+      Requires=pve-cluster.service
+      After=pve-cluster.service
+    owner: root
+    group: root
+    mode: '0644'
+  when: nginx_enable
+
+- name: Restart Nginx service
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+    enabled: true
+  when: nginx_enable

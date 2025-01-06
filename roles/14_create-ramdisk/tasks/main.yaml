@@ -1,0 +1,54 @@
+- name: Ensure /mnt/ramdisk directory exists
+  ansible.builtin.file:
+    path: /mnt/ramdisk
+    state: directory
+    mode: '0755'
+  when: create_ramfs | default(false)
+
+- name: Add ramdisk entry to /etc/fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '^tmpfs /mnt/ramdisk'
+    line: "tmpfs /mnt/ramdisk tmpfs defaults,size={{ ramfs_size }} 0 0"
+    state: present
+  when: create_ramfs | default(false)
+
+- name: Mount ramdisk if create_ramfs is true
+  ansible.builtin.command: mount -a
+  when: create_ramfs | default(false)
+
+- name: Remove ramdisk entry from /etc/fstab if create_ramfs is false
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '^tmpfs /mnt/ramdisk'
+    state: absent
+  when: not create_ramfs | default(false)
+
+- name: Unmount ramdisk if create_ramfs is false
+  ansible.builtin.command: umount /mnt/ramdisk
+  ignore_errors: true
+  when: not create_ramfs | default(false)
+
+- name: Remove /mnt/ramdisk directory if create_ramfs is false
+  ansible.builtin.file:
+    path: /mnt/ramdisk
+    state: absent
+  when: not create_ramfs | default(false)
+
+- name: Check if ramdisk storage exists in Proxmox
+  ansible.builtin.command: pvesm status
+  register: pvesm_status
+  ignore_errors: true
+
+- name: Set fact to determine if ramdisk storage exists
+  ansible.builtin.set_fact:
+    ramdisk_exists: "{{ 'ramdisk' in pvesm_status.stdout }}"
+  when: pvesm_status.rc == 0
+
+- name: Add ramdisk storage to Proxmox if create_ramfs is true and storage doesn't exist
+  ansible.builtin.command: pvesm add dir ramdisk --path /mnt/ramdisk --content images
+  when: create_ramfs | bool and not ramdisk_exists
+
+- name: Remove ramdisk storage from Proxmox if create_ramfs is false
+  ansible.builtin.command: pvesm remove ramdisk
+  when: not create_ramfs | bool

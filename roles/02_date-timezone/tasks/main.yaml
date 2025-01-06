@@ -1,0 +1,25 @@
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+
+- name: Remove existing pool lines from chrony config
+  ansible.builtin.lineinfile:
+    path: /etc/chrony/chrony.conf
+    regexp: '^pool'
+    state: absent
+
+- name: Add NTP servers to chrony config
+  ansible.builtin.lineinfile:
+    path: /etc/chrony/chrony.conf
+    line: "pool {{ item }} iburst"
+    state: present
+  loop: "{{ ntp_servers }}"
+
+- name: Enable chrony
+  ansible.builtin.service:
+    name: chronyd
+    state: restarted
+    enabled: true
+
+- name: Force Chrony to synchronize time immediately
+  ansible.builtin.command: chronyc -a makestep

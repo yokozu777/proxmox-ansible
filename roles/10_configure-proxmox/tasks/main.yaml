@@ -1,0 +1,28 @@
+- name: Configure Maximal Workers/Bulk Actions in Proxmox
+  ansible.builtin.lineinfile:
+    path: /etc/pve/datacenter.cfg
+    regexp: "^max_workers:.*"
+    line: "max_workers: {{ max_workers }}"
+    create: true
+    mode: '0640'
+
+- name: Download VirtIO ISO to Proxmox local storage if not exists
+  ansible.builtin.shell: |
+    if [ ! -f /var/lib/vz/template/iso/virtio-win.iso ]; then
+      curl -L -o /var/lib/vz/template/iso/virtio-win.iso https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso;
+    else
+      echo "File already exists, skipping download.";
+    fi
+  when: download_windows_guest_tools | default(false)
+  changed_when: false
+
+- name: Download specified ISO files to Proxmox local storage if not exists
+  ansible.builtin.shell: |
+    if [ ! -f {{ storage_path }}/{{ item | basename }} ]; then
+      curl -L -o {{ storage_path }}/{{ item | basename }} {{ item }};
+    else
+      echo "File {{ item | basename }} already exists, skipping download.";
+    fi
+  loop: "{{ iso_file | select('string') | list }}"
+  when: download_custom_images | default(false)
+  changed_when: false

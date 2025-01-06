@@ -1,0 +1,20 @@
+- name: Compress /etc directory on remote system
+  community.general.archive:
+    path: /etc
+    dest: /tmp/etc_backup.tar.gz
+    format: gz
+    mode: '0600'
+  when: backup_etc
+
+- name: Fetch the backup to local system
+  ansible.builtin.fetch:
+    src: /tmp/etc_backup.tar.gz
+    dest: ./{{ inventory_hostname }}_etc_backup_{{ ansible_date_time.iso8601 }}.tar.gz
+    flat: true
+  when: backup_etc
+
+- name: Remove the temporary backup file from remote system
+  ansible.builtin.file:
+    path: /tmp/etc_backup.tar.gz
+    state: absent
+  when: backup_etc

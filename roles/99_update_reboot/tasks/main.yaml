@@ -1,0 +1,35 @@
+- name: Ensure unattended-upgrades is installed
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+
+- name: Configure unattended-upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Download-Upgradeable-Packages "1";
+      APT::Periodic::AutocleanInterval "7";
+      APT::Periodic::Unattended-Upgrade "1";
+    mode: '0644'
+
+- name: Create cron job for system updates
+  ansible.builtin.cron:
+    name: "Automatic updates"
+    minute: "{{ update_schedule_time.split(':')[1] }}"
+    hour: "{{ update_schedule_time.split(':')[0] }}"
+    job: "apt update && apt full-upgrade -y && apt autoremove -y"
+    state: present
+  when: system_update_scheduler
+
+- name: Perform system update immediately
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: full
+    autoremove: true
+  when: update_system_now
+
+- name: Reboot the system
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+  when: reboot_system

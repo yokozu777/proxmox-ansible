@@ -1,0 +1,116 @@
+- name: Check if /var/log is in fstab
+  ansible.builtin.shell: grep -q "^tmpfs /var/log tmpfs" /etc/fstab
+  register: var_log_in_fstab
+  ignore_errors: true
+  changed_when: false
+  when: move_logs_tmpfs
+
+- name: Check if /var/log/pveproxy is in fstab
+  ansible.builtin.shell: grep -q "^tmpfs /var/log/pveproxy tmpfs" /etc/fstab
+  register: pveproxy_log_in_fstab
+  ignore_errors: true
+  changed_when: false
+  when: move_logs_tmpfs
+
+- name: Check if /var/log/nginx is in fstab
+  ansible.builtin.shell: grep -q "^tmpfs /var/log/nginx tmpfs" /etc/fstab
+  register: nginx_log_in_fstab
+  ignore_errors: true
+  changed_when: false
+  when: move_logs_tmpfs and nginx_enable
+
+- name: Create backup of current /var/log
+  community.general.archive:
+    path: /var/log
+    dest: /tmp/log_backup.tar.gz
+    format: gz
+    mode: '0640'
+  when: move_logs_tmpfs and var_log_in_fstab.rc != 0
+
+- name: Get list of all running services excluding sshd and unnecessary entries
+  ansible.builtin.shell: |
+    systemctl list-units --type=service --state=running \
+    | awk '/^$/{exit} {print $1}' \
+    | grep -Ev "^(ssh|UNIT|LOAD|ACTIVE|SUB|^-)"
+  register: running_services
+  changed_when: false
+  when: move_logs_tmpfs and var_log_in_fstab.rc != 0
+
+- name: Stop all running services excluding sshd
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+  loop: "{{ running_services.stdout_lines }}"
+  when: move_logs_tmpfs and var_log_in_fstab.rc != 0
+
+- name: Clean /var/log before mounting tmpfs
+  ansible.builtin.file:
+    path: /var/log
+    state: absent
+  when: move_logs_tmpfs and var_log_in_fstab.rc != 0
+
+- name: Mount /var/log as tmpfs
+  ansible.posix.mount:
+    path: /var/log
+    src: tmpfs
+    fstype: tmpfs
+    opts: "size={{ tmpfs_logs_size }},mode=0755,noexec,uid=0,gid=0"
+    state: mounted
+  when: move_logs_tmpfs and var_log_in_fstab.rc != 0
+
+- name: Mount /var/log/pveproxy as tmpfs
+  ansible.posix.mount:
+    path: /var/log/pveproxy
+    src: tmpfs
+    fstype: tmpfs
+    opts: "size={{ tmpfs_logs_pveproxy_size }},mode=0755,noexec,uid=33,gid=33"
+    state: mounted
+  when: move_logs_tmpfs and pveproxy_log_in_fstab.rc != 0
+
+- name: Mount /var/log/nginx as tmpfs
+  ansible.posix.mount:
+    path: /var/log/nginx
+    src: tmpfs
+    fstype: tmpfs
+    opts: "size={{ tmpfs_logs_nginx_size }},mode=0755,noexec,uid=0,gid=4"
+    state: mounted
+  when: move_logs_tmpfs and nginx_enable and nginx_log_in_fstab.rc != 0
+
+- name: Ensure tmpfs for /var/log is in /etc/fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: "^tmpfs /var/log tmpfs"
+    line: "tmpfs /var/log tmpfs defaults,noexec,uid=0,gid=0,size={{ tmpfs_logs_size }} 0 0"
+    state: present
+  when: move_logs_tmpfs
+
+- name: Ensure tmpfs for /var/log/pveproxy is in /etc/fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: "^tmpfs /var/log/pveproxy tmpfs"
+    line: "tmpfs /var/log/pveproxy tmpfs defaults,noexec,uid=33,gid=33,size={{ tmpfs_logs_pveproxy_size }} 0 0"
+    state: present
+  when: move_logs_tmpfs
+
+- name: Ensure tmpfs for /var/log/nginx is in /etc/fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: "^tmpfs /var/log/nginx tmpfs"
+    line: "tmpfs /var/log/nginx tmpfs defaults,noexec,uid=0,gid=4,size={{ tmpfs_logs_nginx_size }} 0 0"
+    state: present
+  when: move_logs_tmpfs and nginx_enable
+
+- name: Restore logs from backup
+  ansible.builtin.command: tar -xzf /tmp/log_backup.tar.gz -C /
+  when: move_logs_tmpfs and ansible_facts.mounts | selectattr('mount', 'equalto', '/var/log') | list | length > 0 and var_log_in_fstab.rc != 0
+
+- name: Reload systemd manager configuration
+  ansible.builtin.command: systemctl daemon-reload
+  when: move_logs_tmpfs and var_log_in_fstab.rc != 0
+
+- name: Start all previously running services excluding sshd
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: started
+  loop: "{{ running_services.stdout_lines }}"
+  when: move_logs_tmpfs and var_log_in_fstab.rc != 0

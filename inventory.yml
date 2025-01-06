@@ -1,0 +1,6 @@
+all:
+  hosts:
+    192.168.1.80:
+      vars_file: host_vars/example.yml
+    192.168.1.83:
+      vars_file: host_vars/example_1.yml

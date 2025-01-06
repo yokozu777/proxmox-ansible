@@ -1,0 +1,80 @@
+- name: Detect boot loader
+  ansible.builtin.shell: "[ -d /sys/firmware/efi ] && echo efi || echo bios"
+  register: boot_mode
+  changed_when: false
+
+- name: Configure VFIO and modules
+  notify:
+    - "{{ 'Update GRUB' if boot_mode.stdout.strip() == 'bios' else 'Proxmox Boot Tool Refresh' }}"
+  block:
+    - name: Add vfio modules
+      ansible.builtin.blockinfile:
+        path: /etc/modules
+        block: |
+          vfio
+          vfio_iommu_type1
+          vfio_pci
+          vfio_virqfd
+        owner: root
+        group: root
+        mode: '0644'
+        create: true
+
+    - name: Update kvm
+      ansible.builtin.lineinfile:
+        line: options kvm ignore_msrs=1 report_ignored_msrs=0
+        path: /etc/modprobe.d/kvm.conf
+        owner: root
+        group: root
+        mode: '0644'
+        create: true
+
+    - name: Ensure modules are blacklisted
+      ansible.builtin.lineinfile:
+        line: "blacklist {{ module }}"
+        path: /etc/modprobe.d/blacklist.conf
+        owner: root
+        group: root
+        mode: '0644'
+        create: true
+      with_items: "{{ pcie_passthrough.blocklist }}"
+      loop_control:
+        loop_var: module
+
+    - name: Add GPU ID to vfio.conf (from ids)
+      ansible.builtin.lineinfile:
+        line: "options vfio-pci ids={{ pcie_passthrough.ids | join(',') }}"
+        path: /etc/modprobe.d/vfio.conf
+        owner: root
+        group: root
+        mode: '0644'
+        create: true
+      when: pcie_passthrough.ids is defined and pcie_passthrough.ids | length > 0 and pcie_passthrough.ids != [0]
+
+    - name: Add GPU ID to vfio.conf (from ids_gpu)
+      ansible.builtin.lineinfile:
+        line: "options vfio-pci ids={{ pcie_passthrough.ids_gpu | join(',') }} disable_vga=1"
+        path: /etc/modprobe.d/vfio.conf
+        owner: root
+        group: root
+        mode: '0644'
+        create: true
+      when: pcie_passthrough.ids_gpu is defined and pcie_passthrough.ids_gpu | length > 0 and pcie_passthrough.ids_gpu != [0]
+
+    - name: Allow unsafe interrupts
+      ansible.builtin.lineinfile:
+        line: options vfio_iommu_type1 allow_unsafe_interrupts=1
+        path: /etc/modprobe.d/iommu_unsafe_interrupts.conf
+        owner: root
+        group: root
+        mode: '0644'
+        create: true
+
+    - name: Ensure snd-hda-intel.conf file contains the correct options
+      ansible.builtin.lineinfile:
+        path: /etc/modprobe.d/snd-hda-intel.conf
+        line: "options snd-hda-intel enable_msi=1"
+        owner: root
+        group: root
+        mode: '0644'
+        create: true

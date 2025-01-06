@@ -1,0 +1,116 @@
+- name: Configure SMT control
+  ansible.builtin.shell: echo {{ smt }} > /sys/devices/system/cpu/smt/control
+  when:
+    - change_smt | default(false)
+    - smt is defined
+    - smt in ['on', 'off']
+  changed_when: false
+
+- name: Set IOMMU parameters based on CPU vendor
+  ansible.builtin.set_fact:
+    iommu_param: >-
+      {{ 'amd_iommu=on' if 'AuthenticAMD' in cpu_vendor.stdout else 'intel_iommu=on' }}
+
+- name: Collect kernel parameters
+  ansible.builtin.set_fact:
+    kernel_params: >-
+      {{ 'ipv6.disable=1' if disable_ipv6 | default(false) else '' }}
+      quiet pcie_aspm=off intremap=no_x2apic_optout iommu=pt pcie_acs_override=downstream,multifunction
+      {{ iommu_param }}
+      {{ 'amd_pstate=' + amd_pstate if pstate_performance | default(false) and 'AuthenticAMD' in cpu_vendor.stdout else '' }}
+      {{ 'intel_pstate=' + intel_pstate if pstate_performance | default(false) and 'GenuineIntel' in cpu_vendor.stdout else '' }}
+      {{ 'nosmt=force' if change_smt | default(false) and smt == 'off' else '' }}
+
+- name: Update kernel parameters in GRUB
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+    line: GRUB_CMDLINE_LINUX_DEFAULT="{{ kernel_params | trim }}"
+    create: true
+    mode: '0644'
+    owner: root
+    group: root
+  notify: Update GRUB
+  when: boot_mode.stdout.strip() == 'bios'
+
+- name: Update kernel parameters in EFI
+  block:
+    - name: Read existing kernel parameters from EFI
+      ansible.builtin.slurp:
+        src: /etc/kernel/cmdline
+      register: existing_cmdline
+
+    - name: Merge new kernel parameters with existing ones
+      ansible.builtin.set_fact:
+        merged_kernel_params: >-
+          {{ (existing_cmdline.content | b64decode | trim).split() |
+             union(kernel_params.split()) |
+             join(" ") }}
+
+    - name: Write updated kernel parameters to EFI
+      ansible.builtin.copy:
+        dest: /etc/kernel/cmdline
+        content: "{{ merged_kernel_params }}"
+        mode: '0644'
+      notify: Proxmox Boot Tool Refresh
+      when: boot_mode.stdout.strip() == 'efi'
+
+- name: Disable IPv6 in sysctl
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-disable-ipv6.conf
+    content: |
+      net.ipv6.conf.all.disable_ipv6 = 1
+      net.ipv6.conf.default.disable_ipv6 = 1
+      net.ipv6.conf.lo.disable_ipv6 = 1
+    mode: '0644'
+  notify:
+    - Reload sysctl
+  when: disable_ipv6 | default(false)
+
+- name: Reload sysctl to apply changes
+  ansible.builtin.command: sysctl --system
+  when: disable_ipv6 | default(false)
+  changed_when: false
+
+- name: Manage specified services
+  ansible.builtin.systemd:
+    name: "{{ item.name }}"
+    state: "{{ 'stopped' if item.disable else 'started' }}"
+    enabled: "{{ 'no' if item.disable else 'yes' }}"
+  loop: "{{ services_to_disable }}"
+
+- name: Ensure locales package is installed
+  ansible.builtin.apt:
+    name: locales
+    state: present
+
+- name: Configure /etc/locale.gen
+  ansible.builtin.lineinfile:
+    path: /etc/locale.gen
+    regexp: "^#?{{ item }}$"
+    line: "{{ item }}"
+    state: present
+  loop: "{{ additional_locales }}"
+
+- name: Generate selected locales
+  ansible.builtin.command: locale-gen
+  changed_when: false
+
+- name: Configure /etc/default/locale
+  ansible.builtin.copy:
+    dest: /etc/default/locale
+    content: |
+      LANG={{ default_locale }}
+      LC_ALL={{ default_locale }}
+    mode: '0644'
+
+- name: Reconfigure locales
+  ansible.builtin.command: dpkg-reconfigure -f noninteractive locales
+  changed_when: false
+
+- name: Disable AppArmor service
+  ansible.builtin.systemd:
+    name: apparmor
+    enabled: false
+    state: stopped
+  when: apparmor_disable | default(false)

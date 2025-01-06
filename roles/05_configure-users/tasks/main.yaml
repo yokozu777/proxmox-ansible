@@ -1,0 +1,82 @@
+- name: Gather OS facts
+  ansible.builtin.setup:
+    filter: ansible_distribution
+
+- name: Change root password
+  ansible.builtin.user:
+    name: root
+    password: "{{ new_root_password | password_hash('sha512') }}"
+  when: change_root_password | default(false)
+
+- name: Determine the group based on the distribution
+  ansible.builtin.set_fact:
+    user_group: "{{ 'sudo' if ansible_distribution in ['Ubuntu', 'Debian'] else 'wheel' }}"
+
+- name: Add users with appropriate group permissions
+  ansible.builtin.user:
+    name: "{{ system_user }}"
+    shell: /bin/bash
+    groups: "{{ user_group }}"
+    append: true
+    createhome: true
+    state: present
+  async: 45
+  poll: 5
+
+- name: Hash password
+  ansible.builtin.set_fact:
+    hashed_password: "{{ system_user_password | password_hash('sha512') }}"
+
+- name: Set password for the user
+  ansible.builtin.user:
+    name: "{{ system_user }}"
+    password: "{{ hashed_password }}"
+  when: enable_system_user_password | default(false)
+
+- name: Ensure sudo is installed
+  ansible.builtin.apt:
+    name: sudo
+    state: present
+    update_cache: true
+
+- name: Allow group to have passwordless sudo
+  ansible.builtin.lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: "^%{{ user_group }}"
+    line: "%{{ user_group }} ALL=(ALL) NOPASSWD: ALL"
+    validate: 'visudo -cf %s'
+
+- name: Ensure AuthorizedKeysFile is set to .ssh/authorized_keys
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^AuthorizedKeysFile'
+    line: 'AuthorizedKeysFile .ssh/authorized_keys'
+    state: present
+
+- name: Add all public keys from the specified folder
+  ansible.posix.authorized_key:
+    user: '{{ system_user }}'
+    key: "{{ lookup('file', item) }}"
+    state: present
+  with_fileglob:
+    - "{{ pub_keys_folder }}/*.pub"
+  when: pub_keys_folder is defined
+
+- name: Check if Proxmox user exists
+  ansible.builtin.command: pveum user list
+  register: pveum_users
+
+- name: Create Proxmox user
+  ansible.builtin.command: >
+    pveum useradd {{ system_user }}@pam -comment "Web interface user"
+  when: system_user ~ '@pam' not in pveum_users.stdout
+
+- name: Check if Proxmox user has PVEAdmin role
+  ansible.builtin.command: pveum acl list
+  register: pveum_roles
+
+- name: Assign PVEAdmin role to the user
+  ansible.builtin.command: >
+    pveum aclmod / -user {{ system_user }}@pam -role PVEAdmin
+  when: system_user ~ '@pam' not in pveum_roles.stdout or 'PVEAdmin' not in pveum_roles.stdout

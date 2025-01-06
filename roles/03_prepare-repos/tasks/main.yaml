@@ -1,0 +1,80 @@
+- name: Get Proxmox version
+  ansible.builtin.command: pveversion
+  register: proxmox_pveversion_info
+  changed_when: false
+
+- name: Extract Proxmox major version
+  ansible.builtin.set_fact:
+    proxmox_pve_major: "{{ proxmox_pveversion_info.stdout.split('/')[1].split('.')[0] | int }}"
+
+- name: Remove unnecessary repository files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/apt/sources.list
+    - /etc/apt/sources.list.d/pve-enterprise.list
+    - /etc/apt/sources.list.d/ceph.list
+
+- name: Add Proxmox and Debian repositories
+  ansible.builtin.template:
+    src: sources.list.j2
+    dest: /etc/apt/sources.list
+    mode: '0644'
+
+- name: Remove pvetest repository
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list
+    regexp: "^deb http://download.proxmox.com/debian/pve {{ ansible_distribution_release }} pvetest"
+    state: absent
+  when: not add_pvetest_repo | bool
+
+- name: Remove backports repository
+  ansible.builtin.lineinfile:
+    path: /etc/apt/sources.list
+    regexp: >-
+      ^deb http://deb.debian.org/debian {{ ansible_distribution_release }}-backports main contrib non-free
+      {% if (proxmox_pve_major | int) == 8 %} non-free-firmware{% endif %}
+    state: absent
+  when: not add_backports_repo | bool
+
+- name: SourceListWarnings NonFreeFirmware
+  ansible.builtin.lineinfile:
+    path: /etc/apt/apt.conf.d/no-{{ ansible_distribution_release }}-firmware.conf
+    line: 'APT::Get::Update::SourceListWarnings::NonFreeFirmware "false";'
+    create: true
+    state: present
+    mode: '0644'
+
+- name: Disable proxmox subscription popup
+  ansible.builtin.replace:
+    path: /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
+    regexp: '^(.*)Ext\.Msg\.show\(\{(.*)$\n^(.*)No valid subscription(.*)$'
+    replace: '\1void({\2\n\3No valid subscription\4'
+
+- name: Disable subscription nag
+  ansible.builtin.copy:
+    src: no-nag-script
+    dest: /etc/apt/apt.conf.d/no-nag-script
+    mode: '0644'
+
+- name: Clean APT cache
+  ansible.builtin.apt:
+    autoclean: true
+
+- name: Remove APT lists directory
+  ansible.builtin.file:
+    path: /var/lib/apt/lists
+    state: absent
+
+- name: Recreate APT lists directory
+  ansible.builtin.file:
+    path: /var/lib/apt/lists
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Update APT cache
+  ansible.builtin.apt:
+    update_cache: true

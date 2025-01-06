@@ -1,0 +1,28 @@
+- name: Web temperatures install
+  when: web_show_temperatures | bool
+  notify:
+    - Restart pveproxy service
+  block:
+    - name: Install lm-sensors
+      ansible.builtin.apt:
+        name:
+          - lm-sensors
+        state: present
+        update_cache: true
+
+    - name: Run sensors-detect in auto mode to detect sensors
+      ansible.builtin.command:
+        cmd: sensors-detect --auto
+      register: sensors_detect_result
+      ignore_errors: true
+
+    - name: Copy Python script to remote host
+      ansible.builtin.copy:
+        src: files/insert_thermal.py  # Путь к файлу на локальной машине
+        dest: /tmp/insert_thermal.py  # Путь, куда нужно скопировать на удаленный хост
+        mode: '0755'
+
+    - name: Run the Python script to modify the JS file
+      ansible.builtin.command:
+        cmd: python3 /tmp/insert_thermal.py
+      register: result

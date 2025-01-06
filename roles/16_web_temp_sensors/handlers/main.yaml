@@ -1,0 +1,9 @@
+- name: Restart pveproxy service
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - pveproxy
+    - pvestatd
+    - pvedaemon
+  when: web_show_temperatures | bool
