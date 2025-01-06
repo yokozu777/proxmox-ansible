@@ -33,4 +33,4 @@
     group: root
     mode: '0644'
   when: zfs_arc_min_bytes is defined and zfs_arc_max_bytes is defined and zfs_zed_service is defined and zfs_zed_service.state == 'started'
-  notify: "{{ 'Update GRUB' if boot_mode.stdout.strip() == 'bios' else 'Proxmox Boot Tool Refresh' }}"
+  notify: "{{ 'Update GRUB' if global_boot_mode.strip() == 'bios' else 'Proxmox Boot Tool Refresh' }}"

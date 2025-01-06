@@ -1,0 +1,33 @@
+# /etc/ksmtuned.conf
+
+{% if KSM_THRES_COEF != 0 %}
+KSM_THRES_COEF={{ KSM_THRES_COEF }}
+{% endif %}
+
+{% if KSM_THRES_CONST != 0 %}
+KSM_THRES_CONST={{ KSM_THRES_CONST }}
+{% endif %}
+
+{% if KSM_MONITOR_INTERVAL != 0 %}
+KSM_MONITOR_INTERVAL={{ KSM_MONITOR_INTERVAL }}
+{% endif %}
+
+{% if KSM_SLEEP_MSEC != 0 %}
+KSM_SLEEP_MSEC={{ KSM_SLEEP_MSEC }}
+{% endif %}
+
+{% if KSM_NPAGES_MIN != 0 %}
+KSM_NPAGES_MIN={{ KSM_NPAGES_MIN }}
+{% endif %}
+
+{% if KSM_NPAGES_MAX != 0 %}
+KSM_NPAGES_MAX={{ KSM_NPAGES_MAX }}
+{% endif %}
+
+{% if KSM_NPAGES_BOOST != 0 %}
+KSM_NPAGES_BOOST={{ KSM_NPAGES_BOOST }}
+{% endif %}
+
+{% if KSM_NPAGES_DECAY != 0 %}
+KSM_NPAGES_DECAY={{ KSM_NPAGES_DECAY }}
+{% endif %}

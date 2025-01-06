@@ -22,80 +22,11 @@
     enabled: false
   when: not disable_ksmtuned | default(false)
 
-- name: Ensure /etc/ksmtuned.conf exists
-  ansible.builtin.file:
-    path: /etc/ksmtuned.conf
-    state: touch
+- name: Ensure /etc/ksmtuned.conf is created from template
+  ansible.builtin.template:
+    src: ksmtuned.conf.j2
+    dest: /etc/ksmtuned.conf
     mode: '0644'
-
-- name: Set KSM_THRES_COEF
-  ansible.builtin.lineinfile:
-    path: /etc/ksmtuned.conf
-    regexp: "^KSM_THRES_COEF="
-    line: "KSM_THRES_COEF={{ KSM_THRES_COEF }}"
-    state: present
-  when: KSM_THRES_COEF != 0
-  notify: Restart ksmtuned
-
-- name: Set KSM_THRES_CONST
-  ansible.builtin.lineinfile:
-    path: /etc/ksmtuned.conf
-    regexp: "^KSM_THRES_CONST="
-    line: "KSM_THRES_CONST={{ KSM_THRES_CONST }}"
-    state: present
-  when: KSM_THRES_CONST != 0
-  notify: Restart ksmtuned
-
-- name: Set KSM_MONITOR_INTERVAL
-  ansible.builtin.lineinfile:
-    path: /etc/ksmtuned.conf
-    regexp: "^KSM_MONITOR_INTERVAL="
-    line: "KSM_MONITOR_INTERVAL={{ KSM_MONITOR_INTERVAL }}"
-    state: present
-  when: KSM_MONITOR_INTERVAL != 0
-  notify: Restart ksmtuned
-
-- name: Set KSM_SLEEP_MSEC
-  ansible.builtin.lineinfile:
-    path: /etc/ksmtuned.conf
-    regexp: "^KSM_SLEEP_MSEC="
-    line: "KSM_SLEEP_MSEC={{ KSM_SLEEP_MSEC }}"
-    state: present
-  when: KSM_SLEEP_MSEC != 0
-  notify: Restart ksmtuned
-
-- name: Set KSM_NPAGES_MIN
-  ansible.builtin.lineinfile:
-    path: /etc/ksmtuned.conf
-    regexp: "^KSM_NPAGES_MIN="
-    line: "KSM_NPAGES_MIN={{ KSM_NPAGES_MIN }}"
-    state: present
-  when: KSM_NPAGES_MIN != 0
-  notify: Restart ksmtuned
-
-- name: Set KSM_NPAGES_MAX
-  ansible.builtin.lineinfile:
-    path: /etc/ksmtuned.conf
-    regexp: "^KSM_NPAGES_MAX="
-    line: "KSM_NPAGES_MAX={{ KSM_NPAGES_MAX }}"
-    state: present
-  when: KSM_NPAGES_MAX != 0
-  notify: Restart ksmtuned
-
-- name: Set KSM_NPAGES_BOOST
-  ansible.builtin.lineinfile:
-    path: /etc/ksmtuned.conf
-    regexp: "^KSM_NPAGES_BOOST="
-    line: "KSM_NPAGES_BOOST={{ KSM_NPAGES_BOOST }}"
-    state: present
-  when: KSM_NPAGES_BOOST != 0
-  notify: Restart ksmtuned
-
-- name: Set KSM_NPAGES_DECAY
-  ansible.builtin.lineinfile:
-    path: /etc/ksmtuned.conf
-    regexp: "^KSM_NPAGES_DECAY="
-    line: "KSM_NPAGES_DECAY={{ KSM_NPAGES_DECAY }}"
-    state: present
-  when: KSM_NPAGES_DECAY != 0
+    owner: root
+    group: root
   notify: Restart ksmtuned

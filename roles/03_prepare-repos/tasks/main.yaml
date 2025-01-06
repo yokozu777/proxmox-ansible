@@ -1,12 +1,3 @@
-- name: Get Proxmox version
-  ansible.builtin.command: pveversion
-  register: proxmox_pveversion_info
-  changed_when: false
-
-- name: Extract Proxmox major version
-  ansible.builtin.set_fact:
-    proxmox_pve_major: "{{ proxmox_pveversion_info.stdout.split('/')[1].split('.')[0] | int }}"
-
 - name: Remove unnecessary repository files
   ansible.builtin.file:
     path: "{{ item }}"

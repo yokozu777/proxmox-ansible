@@ -1,18 +1,7 @@
-- name: Get Proxmox version
-  ansible.builtin.command: pveversion
-  register: proxmox_pveversion_info
-  changed_when: false
-  ignore_errors: true
-
-- name: Extract Proxmox major version
-  ansible.builtin.set_fact:
-    proxmox_pve_major: "{{ proxmox_pveversion_info.stdout.split('/')[1].split('.')[0] | int }}"
-
 - name: Install monitoring and frequency utilities
   ansible.builtin.apt:
     name:
       - cpufrequtils
-      - ipmitool
       - fio
     state: present
     update_cache: true
@@ -33,18 +22,13 @@
     update_cache: true
   when: "(proxmox_pve_major | int) >= 8"
 
-- name: Check CPU vendor
-  ansible.builtin.command: cat /proc/cpuinfo
-  register: cpu_info
-  changed_when: false
-
 - name: Install intel-microcode
   ansible.builtin.apt:
     name: intel-microcode
     state: present
     update_cache: true
   when:
-    - "'GenuineIntel' in cpu_info.stdout"
+    - "'GenuineIntel' in global_cpu_vendor"
     - "(proxmox_pve_major | int) >= 8"
 
 - name: Install amd64-microcode
@@ -53,7 +37,7 @@
     state: present
     update_cache: true
   when:
-    - "'AuthenticAMD' in cpu_info.stdout"
+    - "'AuthenticAMD' in global_cpu_vendor"
     - "(proxmox_pve_major | int) >= 8"
 
 - name: Install sysbench and stress-ng

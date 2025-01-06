@@ -17,19 +17,29 @@
     mode: '0755'
 
 - name: Detect CPU vendor
-  ansible.builtin.shell: lscpu | grep Vendor
+  ansible.builtin.shell: cat /proc/cpuinfo
   register: cpu_vendor
   changed_when: false
+
+- name: Set global fact for CPU vendor
+  ansible.builtin.set_fact:
+    global_cpu_vendor: "{{ cpu_vendor.stdout }}"
+
 
 - name: Detect boot loader
   ansible.builtin.shell: "[ -d /sys/firmware/efi ] && echo efi || echo bios"
   register: boot_mode
   changed_when: false
 
-- name: Set CPU vendor fact
+- name: Set global fact for boot loader
   ansible.builtin.set_fact:
-    detected_cpu_vendor: "{{ cpu_vendor.stdout }}"
+    global_boot_mode: "{{ boot_mode.stdout }}"
 
-- name: Set boot mode fact
+- name: Get Proxmox version
+  ansible.builtin.command: pveversion
+  register: proxmox_pveversion_info
+  changed_when: false
+
+- name: Extract Proxmox major version
   ansible.builtin.set_fact:
-    detected_boot_mode: "{{ boot_mode.stdout }}"
+    proxmox_pve_major: "{{ proxmox_pveversion_info.stdout.split('/')[1].split('.')[0] | int }}"

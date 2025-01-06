@@ -1,11 +1,6 @@
-- name: Detect boot loader
-  ansible.builtin.shell: "[ -d /sys/firmware/efi ] && echo efi || echo bios"
-  register: boot_mode
-  changed_when: false
-
 - name: Configure VFIO and modules
   notify:
-    - "{{ 'Update GRUB' if boot_mode.stdout.strip() == 'bios' else 'Proxmox Boot Tool Refresh' }}"
+    - "{{ 'Update GRUB' if global_boot_mode.strip() == 'bios' else 'Proxmox Boot Tool Refresh' }}"
   block:
     - name: Add vfio modules
       ansible.builtin.blockinfile:

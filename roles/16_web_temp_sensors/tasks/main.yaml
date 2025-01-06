@@ -18,8 +18,8 @@
 
     - name: Copy Python script to remote host
       ansible.builtin.copy:
-        src: files/insert_thermal.py  # Путь к файлу на локальной машине
-        dest: /tmp/insert_thermal.py  # Путь, куда нужно скопировать на удаленный хост
+        src: files/insert_thermal.py
+        dest: /tmp/insert_thermal.py
         mode: '0755'
 
     - name: Run the Python script to modify the JS file

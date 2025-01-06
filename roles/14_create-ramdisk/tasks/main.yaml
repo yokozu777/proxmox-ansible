@@ -52,3 +52,4 @@
 - name: Remove ramdisk storage from Proxmox if create_ramfs is false
   ansible.builtin.command: pvesm remove ramdisk
   when: not create_ramfs | bool
+  ignore_errors: true

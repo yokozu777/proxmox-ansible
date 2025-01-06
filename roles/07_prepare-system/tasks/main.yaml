@@ -9,7 +9,7 @@
 - name: Set IOMMU parameters based on CPU vendor
   ansible.builtin.set_fact:
     iommu_param: >-
-      {{ 'amd_iommu=on' if 'AuthenticAMD' in cpu_vendor.stdout else 'intel_iommu=on' }}
+      {{ 'amd_iommu=on' if 'AuthenticAMD' in global_cpu_vendor else 'intel_iommu=on' }}
 
 - name: Collect kernel parameters
   ansible.builtin.set_fact:
@@ -17,8 +17,8 @@
       {{ 'ipv6.disable=1' if disable_ipv6 | default(false) else '' }}
       quiet pcie_aspm=off intremap=no_x2apic_optout iommu=pt pcie_acs_override=downstream,multifunction
       {{ iommu_param }}
-      {{ 'amd_pstate=' + amd_pstate if pstate_performance | default(false) and 'AuthenticAMD' in cpu_vendor.stdout else '' }}
-      {{ 'intel_pstate=' + intel_pstate if pstate_performance | default(false) and 'GenuineIntel' in cpu_vendor.stdout else '' }}
+      {{ 'amd_pstate=' + amd_pstate if pstate_performance | default(false) and 'AuthenticAMD' in global_cpu_vendor else '' }}
+      {{ 'intel_pstate=' + intel_pstate if pstate_performance | default(false) and 'GenuineIntel' in global_cpu_vendor else '' }}
       {{ 'nosmt=force' if change_smt | default(false) and smt == 'off' else '' }}
 
 - name: Update kernel parameters in GRUB
@@ -31,7 +31,7 @@
     owner: root
     group: root
   notify: Update GRUB
-  when: boot_mode.stdout.strip() == 'bios'
+  when: global_boot_mode.strip() == 'bios'
 
 - name: Update kernel parameters in EFI
   block:
@@ -53,7 +53,7 @@
         content: "{{ merged_kernel_params }}"
         mode: '0644'
       notify: Proxmox Boot Tool Refresh
-      when: boot_mode.stdout.strip() == 'efi'
+      when: global_boot_mode.strip() == 'efi'
 
 - name: Disable IPv6 in sysctl
   ansible.builtin.copy:

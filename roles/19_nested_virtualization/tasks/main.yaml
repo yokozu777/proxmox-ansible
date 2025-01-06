@@ -7,13 +7,13 @@
         owner: root
         group: root
         mode: '0644'
-      when: "nested_virtualization_enable and 'GenuineIntel' in cpu_vendor.stdout"
+      when: "nested_virtualization_enable and 'GenuineIntel' in global_cpu_vendor"
 
     - name: Reload kvm-intel module for Intel
       ansible.builtin.shell: |
         modprobe -r kvm_intel
         modprobe kvm_intel
-      when: "nested_virtualization_enable and 'GenuineIntel' in cpu_vendor.stdout"
+      when: "nested_virtualization_enable and 'GenuineIntel' in global_cpu_vendor"
 
 - name: Enable nested virtualization for AMD if CPU is AMD and nested_virtualization_enable is true
   block:
@@ -24,13 +24,13 @@
         owner: root
         group: root
         mode: '0644'
-      when: "nested_virtualization_enable and 'AuthenticAMD' in cpu_vendor.stdout"
+      when: "nested_virtualization_enable and 'AuthenticAMD' in global_cpu_vendor"
 
     - name: Reload kvm-amd module for AMD
       ansible.builtin.shell: |
         modprobe -r kvm_amd
         modprobe kvm_amd
-      when: "nested_virtualization_enable and 'AuthenticAMD' in cpu_vendor.stdout"
+      when: "nested_virtualization_enable and 'AuthenticAMD' in global_cpu_vendor"
 
 - name: Disable nested virtualization for Intel if CPU is Intel and nested_virtualization_enable is false
   block:
@@ -38,13 +38,13 @@
       ansible.builtin.file:
         path: /etc/modprobe.d/kvm-intel.conf
         state: absent
-      when: "not nested_virtualization_enable and 'GenuineIntel' in cpu_vendor.stdout"
+      when: "not nested_virtualization_enable and 'GenuineIntel' in global_cpu_vendor"
 
     - name: Reload kvm-intel module to apply changes for Intel
       ansible.builtin.shell: |
         modprobe -r kvm_intel
         modprobe kvm_intel
-      when: "not nested_virtualization_enable and 'GenuineIntel' in cpu_vendor.stdout"
+      when: "not nested_virtualization_enable and 'GenuineIntel' in global_cpu_vendor"
 
 - name: Disable nested virtualization for AMD if CPU is AMD and nested_virtualization_enable is false
   block:
@@ -52,10 +52,10 @@
       ansible.builtin.file:
         path: /etc/modprobe.d/kvm-amd.conf
         state: absent
-      when: "not nested_virtualization_enable and 'AuthenticAMD' in cpu_vendor.stdout"
+      when: "not nested_virtualization_enable and 'AuthenticAMD' in global_cpu_vendor"
 
     - name: Reload kvm-amd module to apply changes for AMD
       ansible.builtin.shell: |
         modprobe -r kvm_amd
         modprobe kvm_amd
-      when: "not nested_virtualization_enable and 'AuthenticAMD' in cpu_vendor.stdout"
+      when: "not nested_virtualization_enable and 'AuthenticAMD' in global_cpu_vendor"
