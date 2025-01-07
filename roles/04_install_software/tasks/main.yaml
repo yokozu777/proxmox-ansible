@@ -1,0 +1,33 @@
+- name: Install required packages
+  ansible.builtin.apt:
+    name: >-
+      {{
+        (['cpufrequtils', 'fio', 'unattended-upgrades', 'locales', 'sudo']) +
+        (['ipmitool'] if ansible_facts.virtualization_role != 'guest' else []) +
+        (['proxmox-secure-boot-support'] if (proxmox_pve_major | int) >= 8 else []) +
+        (['intel-microcode'] if 'GenuineIntel' in global_cpu_vendor and (proxmox_pve_major | int) >= 8 else []) +
+        (['amd64-microcode'] if 'AuthenticAMD' in global_cpu_vendor and (proxmox_pve_major | int) >= 8 else []) +
+        (['sysbench', 'stress-ng'] if install_stresstest_software | default(false) else []) +
+        (['nginx'] if nginx_enable | default(false) else []) +
+        (['fail2ban'] if fail2ban_enable | default(false) else []) +
+        (['lm-sensors'] if web_show_temperatures | default(false) else []) +
+        (install_packages.split() if install_packages | default('') | length > 0 else [])
+      }}
+    state: present
+    update_cache: true
+
+- name: Uninstall packages
+  ansible.builtin.apt:
+    name: >-
+      {{
+        (uninstall_packages.split() if uninstall_packages | default('') | length > 0 else [])
+      }}
+    state: absent
+    purge: true
+
+- name: Perform system update immediately
+  ansible.builtin.apt:
+    update_cache: true
+    upgrade: full
+    autoremove: true
+  when: update_system_now

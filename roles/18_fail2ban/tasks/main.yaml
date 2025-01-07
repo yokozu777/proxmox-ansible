@@ -1,9 +1,3 @@
-- name: Install Fail2ban package
-  ansible.builtin.apt:
-    name: fail2ban
-    state: present
-  when: fail2ban_enable
-
 - name: Copy jail.local configuration file
   ansible.builtin.copy:
     src: files/jail.local

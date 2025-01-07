@@ -3,13 +3,6 @@
   notify:
     - Restart pveproxy service
   block:
-    - name: Install lm-sensors
-      ansible.builtin.apt:
-        name:
-          - lm-sensors
-        state: present
-        update_cache: true
-
     - name: Run sensors-detect in auto mode to detect sensors
       ansible.builtin.command:
         cmd: sensors-detect --auto

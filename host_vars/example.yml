@@ -61,6 +61,12 @@ pin_kernel_version: "6.8.12-4-pve" # The kernel version to pin.
 unpin_kernel_enabled: false # Enable unpinning a previously pinned kernel version.
 unpin_kernel_version: "6.8.12-4-pve" # The kernel version to unpin.
 
+# Kernel Parameters
+default_kernel_params: >
+  quiet pcie_aspm=off intremap=no_x2apic_optout iommu=pt
+  pcie_acs_override=downstream,multifunction pcie_port_pm=off
+  nvme_core.default_ps_max_latency_us=0
+
 # Service management
 apparmor_disable: false # Disable AppArmor.
 fail2ban_enable: false # Install and enable Fail2Ban for security.
@@ -93,6 +99,8 @@ services_to_disable:
   - name: pve-lxc-syscalld # PVE LXC syscall daemon.
     disable: false
   - name: corosync # Corosync Cluster Engine.
+    disable: false
+  - name: iscsid
     disable: false
 
 # Enable/Disable nested virtualization

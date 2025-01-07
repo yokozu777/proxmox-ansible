@@ -21,5 +21,5 @@
     state: restarted
     enabled: true
 
-- name: Force Chrony to synchronize time immediately
-  ansible.builtin.command: chronyc -a makestep
+- name: Force synchronize time using chrony
+  ansible.builtin.command: bash -c "chronyc -a makestep && sleep 10"

@@ -8,51 +8,51 @@
 
     - name: Backup etc
       ansible.builtin.include_role:
-        name: 01_backup-etc
+        name: 01_backup_etc
 
     - name: Date timezone
       ansible.builtin.include_role:
-        name: 02_date-timezone
+        name: 02_date_timezone
 
     - name: Prepare repos
       ansible.builtin.include_role:
-        name: 03_prepare-repos
-
-    - name: Run role for init sshd user
-      ansible.builtin.include_role:
-        name: 04_init-sshd
-
-    - name: Сonfigure-users
-      ansible.builtin.include_role:
-        name: 05_configure-users
-
-    - name: Configure-bash
-      ansible.builtin.include_role:
-        name: 06_configure-bash
-
-    - name: Prepare system
-      ansible.builtin.include_role:
-        name: 07_prepare-system
-
-    - name: Configure-network
-      ansible.builtin.include_role:
-        name: 08_configure-network
-
-    - name: Configure-zfs
-      ansible.builtin.include_role:
-        name: 09_configure-zfs
-
-    - name: Configure-proxmox
-      ansible.builtin.include_role:
-        name: 10_configure-proxmox
-
-    - name: Enable pcie-passthrough
-      ansible.builtin.include_role:
-        name: 11_pcie-passthrough
+        name: 03_prepare_repos
 
     - name: Install software
       ansible.builtin.include_role:
-        name: 12_install-software
+        name: 04_install_software
+
+    - name: Run role for init sshd user
+      ansible.builtin.include_role:
+        name: 05_init_sshd
+
+    - name: Сonfigure-users
+      ansible.builtin.include_role:
+        name: 06_configure_users
+
+    - name: Configure-bash
+      ansible.builtin.include_role:
+        name: 07_configure_bash
+
+    - name: Prepare system
+      ansible.builtin.include_role:
+        name: 08_prepare_system
+
+    - name: Configure-network
+      ansible.builtin.include_role:
+        name: 09_configure_network
+
+    - name: Configure-zfs
+      ansible.builtin.include_role:
+        name: 10_configure_zfs
+
+    - name: Configure-proxmox
+      ansible.builtin.include_role:
+        name: 11_configure_proxmox
+
+    - name: Enable pcie-passthrough
+      ansible.builtin.include_role:
+        name: 12_pcie_passthrough
 
     - name: Configure ksmtuned
       ansible.builtin.include_role:
@@ -60,11 +60,11 @@
 
     - name: Ram disk
       ansible.builtin.include_role:
-        name: 14_create-ramdisk
+        name: 14_create_ramdisk
 
     - name: Set cpu performance
       ansible.builtin.include_role:
-        name: 15_cpu performance
+        name: 15_cpu_performance
 
     - name: Web show temperatures
       ansible.builtin.include_role:
@@ -93,9 +93,6 @@
     - name: Update system
       ansible.builtin.include_role:
         name: 99_update_reboot
-
-    # - name: Flush all handlers
-    #   ansible.builtin.meta: flush_handlers
 
   handlers:
     - name: Update GRUB

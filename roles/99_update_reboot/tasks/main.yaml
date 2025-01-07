@@ -1,8 +1,3 @@
-- name: Ensure unattended-upgrades is installed
-  ansible.builtin.apt:
-    name: unattended-upgrades
-    state: present
-
 - name: Configure unattended-upgrades
   ansible.builtin.copy:
     dest: /etc/apt/apt.conf.d/20auto-upgrades
@@ -21,13 +16,6 @@
     job: "apt update && apt full-upgrade -y && apt autoremove -y"
     state: present
   when: system_update_scheduler
-
-- name: Perform system update immediately
-  ansible.builtin.apt:
-    update_cache: true
-    upgrade: full
-    autoremove: true
-  when: update_system_now
 
 - name: Reboot the system
   ansible.builtin.reboot:

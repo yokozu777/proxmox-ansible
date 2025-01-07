@@ -15,7 +15,7 @@
   ansible.builtin.set_fact:
     kernel_params: >-
       {{ 'ipv6.disable=1' if disable_ipv6 | default(false) else '' }}
-      quiet pcie_aspm=off intremap=no_x2apic_optout iommu=pt pcie_acs_override=downstream,multifunction
+      {{ default_kernel_params }}
       {{ iommu_param }}
       {{ 'amd_pstate=' + amd_pstate if pstate_performance | default(false) and 'AuthenticAMD' in global_cpu_vendor else '' }}
       {{ 'intel_pstate=' + intel_pstate if pstate_performance | default(false) and 'GenuineIntel' in global_cpu_vendor else '' }}
@@ -25,7 +25,8 @@
   ansible.builtin.lineinfile:
     path: /etc/default/grub
     regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
-    line: GRUB_CMDLINE_LINUX_DEFAULT="{{ kernel_params | trim }}"
+    line: >-
+      GRUB_CMDLINE_LINUX_DEFAULT="{{ (kernel_params.split() | unique | join(' ')) | trim }}"
     create: true
     mode: '0644'
     owner: root
@@ -34,6 +35,7 @@
   when: global_boot_mode.strip() == 'bios'
 
 - name: Update kernel parameters in EFI
+  when: global_boot_mode.strip() == 'efi'
   block:
     - name: Read existing kernel parameters from EFI
       ansible.builtin.slurp:
@@ -53,7 +55,6 @@
         content: "{{ merged_kernel_params }}"
         mode: '0644'
       notify: Proxmox Boot Tool Refresh
-      when: global_boot_mode.strip() == 'efi'
 
 - name: Disable IPv6 in sysctl
   ansible.builtin.copy:
@@ -78,11 +79,6 @@
     state: "{{ 'stopped' if item.disable else 'started' }}"
     enabled: "{{ 'no' if item.disable else 'yes' }}"
   loop: "{{ services_to_disable }}"
-
-- name: Ensure locales package is installed
-  ansible.builtin.apt:
-    name: locales
-    state: present
 
 - name: Configure /etc/locale.gen
   ansible.builtin.lineinfile:

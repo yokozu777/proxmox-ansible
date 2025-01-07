@@ -33,12 +33,6 @@
     password: "{{ hashed_password }}"
   when: enable_system_user_password | default(false)
 
-- name: Ensure sudo is installed
-  ansible.builtin.apt:
-    name: sudo
-    state: present
-    update_cache: true
-
 - name: Allow group to have passwordless sudo
   ansible.builtin.lineinfile:
     dest: /etc/sudoers

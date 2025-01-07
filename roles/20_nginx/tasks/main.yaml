@@ -1,9 +1,3 @@
-- name: Install nginx package
-  ansible.builtin.apt:
-    name: nginx
-    state: present
-  when: nginx_enable
-
 - name: Remove the default Nginx config files
   ansible.builtin.file:
     path: "{{ item }}"

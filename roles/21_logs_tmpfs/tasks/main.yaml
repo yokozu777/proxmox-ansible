@@ -106,7 +106,10 @@
   when: move_logs_tmpfs and nginx_enable
 
 - name: Restore logs from backup
-  ansible.builtin.command: tar -xzf /tmp/log_backup.tar.gz -C /
+  ansible.builtin.unarchive:
+    src: /tmp/log_backup.tar.gz
+    dest: /
+    remote_src: true
   when: move_logs_tmpfs and mount_var_log_task is succeeded
 
 - name: Start all previously running services excluding sshd

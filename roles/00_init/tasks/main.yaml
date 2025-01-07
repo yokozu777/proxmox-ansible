@@ -25,7 +25,6 @@
   ansible.builtin.set_fact:
     global_cpu_vendor: "{{ cpu_vendor.stdout }}"
 
-
 - name: Detect boot loader
   ansible.builtin.shell: "[ -d /sys/firmware/efi ] && echo efi || echo bios"
   register: boot_mode
