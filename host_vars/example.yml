@@ -96,7 +96,7 @@ services_to_disable:
     disable: false
   - name: lxcfs # LXC File System.
     disable: false
-  - name: pve-lxc-syscalld # PVE LXC syscall daemon.
+  - name: pve-lxc-syscalld # PVE LXC syscall daemon. Do not disable this.
     disable: false
   - name: corosync # Corosync Cluster Engine.
     disable: false
@@ -114,7 +114,7 @@ smt: off # Specify "on" or "off" for Hyper-Threading.
 pstate_performance: true # Enable P-State performance tuning.
 amd_pstate: active # AMD P-State mode (e.g., active, guided).
 intel_pstate: active # Intel P-State mode (e.g., active, passive).
-scaling_governor: schedutil # CPU scaling governor (e.g., schedutil, performance, powersave).
+scaling_governor: performance # CPU scaling governor (e.g., schedutil, performance, powersave). Please check available modes before use.
 
 # Create logs RAM disk storage (cleaned after reboot)
 move_logs_tmpfs: false # Enable moving logs to tmpfs (RAM disk).
@@ -127,6 +127,7 @@ create_ramfs: false # Enable or disable creating a RAM disk.
 ramfs_size: 1000m # RAM disk size (e.g., 200000m for 200GB).
 
 # Set ZFS ARC config in GB
+set_zfs_arc: false
 zfs_arc_min: 1 # Minimum ARC size in GB.
 zfs_arc_max: 1 # Maximum ARC size in GB.
 

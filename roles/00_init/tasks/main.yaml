@@ -26,13 +26,22 @@
     global_cpu_vendor: "{{ cpu_vendor.stdout }}"
 
 - name: Detect boot loader
-  ansible.builtin.shell: "[ -d /sys/firmware/efi ] && echo efi || echo bios"
+  ansible.builtin.shell: >
+    if [ -d /sys/firmware/efi ]; then
+      if ls /boot/efi/EFI/*/grub.cfg >/dev/null 2>&1; then
+        echo efi-grub
+      else
+        echo efi
+      fi
+    else
+      echo bios
+    fi
   register: boot_mode
   changed_when: false
 
 - name: Set global fact for boot loader
   ansible.builtin.set_fact:
-    global_boot_mode: "{{ boot_mode.stdout }}"
+    global_boot_mode: "{{ boot_mode.stdout.strip() }}"
 
 - name: Get Proxmox version
   ansible.builtin.command: pveversion

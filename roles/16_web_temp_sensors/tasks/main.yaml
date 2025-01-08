@@ -8,6 +8,9 @@
         cmd: sensors-detect --auto
       register: sensors_detect_result
       ignore_errors: true
+      changed_when: >
+        "'No modules to load, skipping modules configuration.' not in sensors_detect_result.stdout or
+        'Sorry, no sensors were detected.' not in sensors_detect_result.stdout"
 
     - name: Copy Python script to remote host
       ansible.builtin.copy:
@@ -19,3 +22,4 @@
       ansible.builtin.command:
         cmd: python3 /tmp/insert_thermal.py
       register: result
+      changed_when: "'Line already exists, skipping insertion.' not in result.stdout"

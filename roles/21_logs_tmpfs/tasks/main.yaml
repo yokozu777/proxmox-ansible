@@ -28,6 +28,7 @@
     dest: /tmp/log_backup.tar.gz
     format: gz
     mode: '0640'
+  register: backup_var_log_task
   when: move_logs_tmpfs and var_log_in_fstab.rc != 0
 
 - name: Get list of all running services excluding sshd and unnecessary entries
@@ -60,7 +61,6 @@
     fstype: tmpfs
     opts: "size={{ tmpfs_logs_size }},mode=0755,noexec,uid=0,gid=0"
     state: mounted
-  register: mount_var_log_task
   when: move_logs_tmpfs and var_log_in_fstab.rc != 0
 
 - name: Mount /var/log/pveproxy as tmpfs
@@ -110,7 +110,9 @@
     src: /tmp/log_backup.tar.gz
     dest: /
     remote_src: true
-  when: move_logs_tmpfs and mount_var_log_task is succeeded
+  when:
+    - move_logs_tmpfs
+    - backup_var_log_task.changed
 
 - name: Start all previously running services excluding sshd
   ansible.builtin.systemd:

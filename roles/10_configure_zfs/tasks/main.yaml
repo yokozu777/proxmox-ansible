@@ -1,36 +1,48 @@
-- name: Check if zfs-zed service is active
-  ansible.builtin.systemd:
-    name: zfs-zed.service
-    state: started
-  register: zfs_zed_service
-  ignore_errors: true
+- name: Check if ZFS pools exist
+  ansible.builtin.command: zpool list
+  register: zpool_status
+  changed_when: false
+  failed_when: zpool_status.rc != 0
 
-- name: Convert zfs_arc_min and zfs_arc_max from GB to bytes
+- name: Determine if ZFS pools are present
   ansible.builtin.set_fact:
-    zfs_arc_min_bytes: "{{ zfs_arc_min * 1024 * 1024 * 1024 - 1 }}"
-    zfs_arc_max_bytes: "{{ zfs_arc_max * 1024 * 1024 * 1024 }}"
-  when: zfs_arc_min is defined and zfs_arc_max is defined and zfs_zed_service is defined and zfs_zed_service.state == 'started'
+    zfs_pools_exist: "{{ 'no pools available' not in zpool_status.stdout and zpool_status.stdout.strip() != '' }}"
 
-- name: Set zfs_arc_min using echo command
-  ansible.builtin.shell:
-    cmd: echo "{{ zfs_arc_min_bytes }}" > /sys/module/zfs/parameters/zfs_arc_min
-  when: zfs_arc_min_bytes is defined and zfs_zed_service is defined and zfs_zed_service.state == 'started'
-  changed_when: false
+- name: Configure ZFS ARC parameters
+  when:
+    - zfs_pools_exist
+    - set_zfs_arc | default(false) | bool
+  block:
+    - name: Convert zfs_arc_min from GB to bytes
+      ansible.builtin.set_fact:
+        zfs_arc_min_bytes: "{{ zfs_arc_min * 1024 * 1024 * 1024 - 1 }}"
+      when: zfs_arc_min_bytes is defined
 
-- name: Set zfs_arc_max using echo command
-  ansible.builtin.shell:
-    cmd: echo "{{ zfs_arc_max_bytes }}" > /sys/module/zfs/parameters/zfs_arc_max
-  when: zfs_arc_max_bytes is defined and zfs_zed_service is defined and zfs_zed_service.state == 'started'
-  changed_when: false
+    - name: Convert zfs_arc_max from GB to bytes
+      ansible.builtin.set_fact:
+        zfs_arc_max_bytes: "{{ zfs_arc_max * 1024 * 1024 * 1024 }}"
+      when: zfs_arc_max_bytes is defined
 
-- name: Create or update ZFS configuration
-  ansible.builtin.copy:
-    dest: /etc/modprobe.d/zfs.conf
-    content: |
-      options zfs zfs_arc_min={{ zfs_arc_min_bytes }}
-      options zfs zfs_arc_max={{ zfs_arc_max_bytes }}
-    owner: root
-    group: root
-    mode: '0644'
-  when: zfs_arc_min_bytes is defined and zfs_arc_max_bytes is defined and zfs_zed_service is defined and zfs_zed_service.state == 'started'
-  notify: "{{ 'Update GRUB' if global_boot_mode.strip() == 'bios' else 'Proxmox Boot Tool Refresh' }}"
+    - name: Apply zfs_arc_min parameter temporarily
+      ansible.builtin.shell:
+        cmd: echo "{{ zfs_arc_min_bytes }}" > /sys/module/zfs/parameters/zfs_arc_min
+      when: zfs_arc_min_bytes is defined
+      changed_when: false
+
+    - name: Apply zfs_arc_max parameter temporarily
+      ansible.builtin.shell:
+        cmd: echo "{{ zfs_arc_max_bytes }}" > /sys/module/zfs/parameters/zfs_arc_max
+      when: zfs_arc_max_bytes is defined
+      changed_when: false
+
+    - name: Create or update ZFS configuration
+      ansible.builtin.copy:
+        dest: /etc/modprobe.d/zfs.conf
+        content: |
+          options zfs {% if zfs_arc_min_bytes is defined %}zfs_arc_min={{ zfs_arc_min_bytes }}{% endif %}
+          options zfs {% if zfs_arc_max_bytes is defined %}zfs_arc_max={{ zfs_arc_max_bytes }}{% endif %}
+        owner: root
+        group: root
+        mode: '0644'
+      when: zfs_arc_min_bytes is defined or zfs_arc_max_bytes is defined
+      notify: Reload ZFS Modules

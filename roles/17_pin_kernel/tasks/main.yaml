@@ -1,6 +1,6 @@
 - name: Kernel management tasks
   notify:
-    - "{{ 'Update GRUB' if global_boot_mode.strip() == 'bios' else 'Proxmox Boot Tool Refresh' }}"
+    - "{{ 'Update GRUB' if global_boot_mode.strip() != 'efi' else 'Proxmox Boot Tool Refresh' }}"
   block:
     - name: Install specified Proxmox kernel if enabled and version is provided
       ansible.builtin.apt:

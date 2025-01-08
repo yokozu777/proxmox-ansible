@@ -32,7 +32,7 @@
     owner: root
     group: root
   notify: Update GRUB
-  when: global_boot_mode.strip() == 'bios'
+  when: global_boot_mode.strip() != 'efi'
 
 - name: Update kernel parameters in EFI
   when: global_boot_mode.strip() == 'efi'

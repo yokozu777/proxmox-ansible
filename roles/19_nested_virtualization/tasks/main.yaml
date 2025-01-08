@@ -1,61 +1,50 @@
-- name: Enable nested virtualization for Intel if CPU is Intel and nested_virtualization_enable is true
+- name: Manage nested virtualization
   block:
-    - name: Create /etc/modprobe.d/kvm-intel.conf to enable nested virtualization for Intel
+    - name: Set up parameters for module name
+      ansible.builtin.set_fact:
+        module_name: >-
+          {% if 'GenuineIntel' in global_cpu_vendor %}
+          kvm_intel
+          {% elif 'AuthenticAMD' in global_cpu_vendor %}
+          kvm_amd
+          {% else %}
+          none
+          {% endif %}
+      when: "'GenuineIntel' in global_cpu_vendor or 'AuthenticAMD' in global_cpu_vendor"
+
+    - name: Set up parameters for virtualization paths
+      ansible.builtin.set_fact:
+        conf_path: "/etc/modprobe.d/{{ module_name | trim }}.conf"
+        nested_option: "{{ 'nested=1' if nested_virtualization_enable else '' }}"
+      when: module_name != 'none'
+
+    - name: Create modprobe configuration file for nested virtualization
       ansible.builtin.copy:
-        dest: /etc/modprobe.d/kvm-intel.conf
-        content: "options kvm-intel nested=Y\n"
+        dest: "{{ conf_path }}"
+        content: "options {{ module_name }} {{ nested_option }}\n"
         owner: root
         group: root
         mode: '0644'
-      when: "nested_virtualization_enable and 'GenuineIntel' in global_cpu_vendor"
+      when: nested_virtualization_enable
 
-    - name: Reload kvm-intel module for Intel
-      ansible.builtin.shell: |
-        modprobe -r kvm_intel
-        modprobe kvm_intel
-      when: "nested_virtualization_enable and 'GenuineIntel' in global_cpu_vendor"
-
-- name: Enable nested virtualization for AMD if CPU is AMD and nested_virtualization_enable is true
-  block:
-    - name: Create /etc/modprobe.d/kvm-amd.conf to enable nested virtualization for AMD
-      ansible.builtin.copy:
-        dest: /etc/modprobe.d/kvm-amd.conf
-        content: "options kvm-amd nested=1\n"
-        owner: root
-        group: root
-        mode: '0644'
-      when: "nested_virtualization_enable and 'AuthenticAMD' in global_cpu_vendor"
-
-    - name: Reload kvm-amd module for AMD
-      ansible.builtin.shell: |
-        modprobe -r kvm_amd
-        modprobe kvm_amd
-      when: "nested_virtualization_enable and 'AuthenticAMD' in global_cpu_vendor"
-
-- name: Disable nested virtualization for Intel if CPU is Intel and nested_virtualization_enable is false
-  block:
-    - name: Remove /etc/modprobe.d/kvm-intel.conf to disable nested virtualization for Intel
+    - name: Remove modprobe configuration file if nested virtualization is disabled
       ansible.builtin.file:
-        path: /etc/modprobe.d/kvm-intel.conf
+        path: "{{ conf_path }}"
         state: absent
-      when: "not nested_virtualization_enable and 'GenuineIntel' in global_cpu_vendor"
+      when: not nested_virtualization_enable
 
-    - name: Reload kvm-intel module to apply changes for Intel
+    - name: Check if module is loaded
       ansible.builtin.shell: |
-        modprobe -r kvm_intel
-        modprobe kvm_intel
-      when: "not nested_virtualization_enable and 'GenuineIntel' in global_cpu_vendor"
+        set -o pipefail
+        lsmod | grep -q "^{{ module_name }}"
+      register: module_loaded
+      failed_when: false
+      changed_when: false
 
-- name: Disable nested virtualization for AMD if CPU is AMD and nested_virtualization_enable is false
-  block:
-    - name: Remove /etc/modprobe.d/kvm-amd.conf to disable nested virtualization for AMD
-      ansible.builtin.file:
-        path: /etc/modprobe.d/kvm-amd.conf
-        state: absent
-      when: "not nested_virtualization_enable and 'AuthenticAMD' in global_cpu_vendor"
-
-    - name: Reload kvm-amd module to apply changes for AMD
+    - name: Enable nested virtualization now
       ansible.builtin.shell: |
-        modprobe -r kvm_amd
-        modprobe kvm_amd
-      when: "not nested_virtualization_enable and 'AuthenticAMD' in global_cpu_vendor"
+        modprobe -r {{ module_name }}
+        modprobe {{ module_name }}
+      when:
+        - module_loaded.rc != 0
+      changed_when: module_loaded.rc != 0

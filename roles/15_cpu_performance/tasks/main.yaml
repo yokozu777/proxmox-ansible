@@ -1,7 +1,17 @@
+- name: Get current CPU frequency scaling governor
+  ansible.builtin.command: cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+  register: current_governor
+  changed_when: false
+  failed_when: false
+
 - name: Set CPU frequency scaling governor
   ansible.builtin.command: >
     bash -c "echo '{{ scaling_governor }}' | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"
-  when: scaling_governor is defined and ansible_facts.virtualization_role != 'guest'
+  when:
+    - scaling_governor is defined
+    - ansible_facts.virtualization_role != 'guest'
+    - current_governor.stdout.strip() != scaling_governor
+  changed_when: true
 
 - name: Ensure CPU frequency scaling governor persists after reboot
   ansible.builtin.lineinfile:
