@@ -68,10 +68,15 @@
     - Reload sysctl
   when: disable_ipv6 | default(false)
 
-- name: Reload sysctl to apply changes
-  ansible.builtin.command: sysctl --system
+- name: Comment out any line containing ip6tables-restore
+  ansible.builtin.lineinfile:
+    path: /usr/share/perl5/PVE/Firewall.pm
+    regexp: "^(?!#)(.*ip6tables-restore.*)"
+    line: "# \\1"
+    backrefs: true
+    state: present
+  notify: Restart pve-firewall
   when: disable_ipv6 | default(false)
-  changed_when: false
 
 - name: Manage specified services
   ansible.builtin.systemd:

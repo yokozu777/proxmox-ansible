@@ -2,7 +2,7 @@
   ansible.builtin.apt:
     name: >-
       {{
-        (['cpufrequtils', 'fio', 'unattended-upgrades', 'locales', 'sudo']) +
+        (['cpufrequtils', 'fio', 'unattended-upgrades', 'locales', 'sudo', 'lockfile-progs']) +
         (['ipmitool'] if ansible_facts.virtualization_role != 'guest' else []) +
         (['proxmox-secure-boot-support'] if (proxmox_pve_major | int) >= 8 else []) +
         (['intel-microcode'] if 'GenuineIntel' in global_cpu_vendor and (proxmox_pve_major | int) >= 8 else []) +

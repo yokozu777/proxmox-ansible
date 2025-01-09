@@ -14,7 +14,7 @@
 
     - name: Copy Python script to remote host
       ansible.builtin.copy:
-        src: files/insert_thermal.py
+        src: insert_thermal.py
         dest: /tmp/insert_thermal.py
         mode: '0755'
 

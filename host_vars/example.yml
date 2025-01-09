@@ -60,6 +60,8 @@ pin_kernel_enabled: false # Enable pinning a specific kernel version.
 pin_kernel_version: "6.8.12-4-pve" # The kernel version to pin.
 unpin_kernel_enabled: false # Enable unpinning a previously pinned kernel version.
 unpin_kernel_version: "6.8.12-4-pve" # The kernel version to unpin.
+clean_old_kernels: false
+kernels_to_keep: 2
 
 # Kernel Parameters
 default_kernel_params: >

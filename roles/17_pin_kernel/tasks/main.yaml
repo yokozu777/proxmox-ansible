@@ -13,36 +13,35 @@
       ansible.builtin.shell: |
         set -o pipefail
         proxmox-boot-tool kernel add {{ pin_kernel_version }} ; \
-        echo "Y" | proxmox-boot-tool kernel pin {{ pin_kernel_version }} ; \
-        proxmox-boot-tool refresh
+        echo "Y" | proxmox-boot-tool kernel pin {{ pin_kernel_version }}
       when: pin_kernel_enabled | default(false) | bool and pin_kernel_version is defined
+      changed_when: "'Set' in pin_result.stdout"
+      register: pin_result
 
-    - name: Unpin all kernels if unpin_kernel_enabled is true
+    - name: Unpin specified Proxmox kernel
       ansible.builtin.shell: |
         set -o pipefail
-        echo "Y" | proxmox-boot-tool kernel remove {{ unpin_kernel_version }} ; \
-        proxmox-boot-tool kernel unpin ; \
-        proxmox-boot-tool refresh
+        proxmox-boot-tool kernel remove {{ unpin_kernel_version }} ; \
+        echo "Y" | proxmox-boot-tool kernel unpin
       when: unpin_kernel_enabled | default(false) | bool
+      changed_when: "'unpinned' in unpin_result.stdout"
+      register: unpin_result
 
-    - name: Get currently running kernel
-      ansible.builtin.command: uname -r
-      register: running_kernel
-      changed_when: false
-
-    - name: Get list of installed proxmox kernels excluding proxmox-ve meta-package
+- name: Manage old kernels
+  when: clean_old_kernels | bool
+  block:
+    - name: Get list of installed proxmox kernels and current kernel
       ansible.builtin.shell: |
         set -o pipefail
-        dpkg --list | grep 'kernel-.*-pve' | awk '{print $2}' | grep -v 'proxmox-ve'
-      register: installed_kernels
+        current_kernel=$(uname -r)
+        dpkg --list | grep 'kernel-.*-pve' | awk '{print $2}' | grep -v "$current_kernel" | sort -V | head -n -{{ kernels_to_keep | default(0) }} || true
+      register: kernel_list
       changed_when: false
 
-    - name: Filter kernels to remove (excluding the current kernel)
-      ansible.builtin.set_fact:
-        kernels_to_remove: >
-          {{ (installed_kernels.stdout_lines | difference([running_kernel.stdout])) | sort | reverse }}
-
-    - name: Check if there are kernels to remove
-      ansible.builtin.fail:
-        msg: "No old kernels found. Current kernel: {{ running_kernel.stdout }}"
-      when: kernels_to_remove | length == 0
+    - name: Remove old kernels
+      ansible.builtin.package:
+        name: "{{ item }}"
+        state: absent
+        purge: true
+      loop: "{{ kernel_list.stdout_lines }}"
+      when: kernel_list.stdout_lines | length > 0

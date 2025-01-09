@@ -1,3 +1,6 @@
+[Definition]
+allowipv6 = false
+
 [proxmox]
 enabled = true
 port = https,http,8006
@@ -8,10 +11,6 @@ findtime = 2d
 bantime = 1h
 
 [sshd]
-enabled   = true
-filter    = sshd
-banaction = iptables
-backend   = systemd
-maxretry  = 3
-findtime  = 1d
-bantime   = 1d
+port    = ssh
+logpath = %(sshd_log)s
+backend = systemd
