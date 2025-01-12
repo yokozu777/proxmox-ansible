@@ -102,8 +102,3 @@
     - name: Proxmox Boot Tool Refresh
       ansible.builtin.command: proxmox-boot-tool refresh
       changed_when: false
-
-    - name: Reload ZFS Modules
-      ansible.builtin.shell: |
-        modprobe -r zfs && modprobe zfs
-      changed_when: false

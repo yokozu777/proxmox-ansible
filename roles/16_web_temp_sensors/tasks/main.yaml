@@ -9,8 +9,9 @@
       register: sensors_detect_result
       ignore_errors: true
       changed_when: >
-        "'No modules to load, skipping modules configuration.' not in sensors_detect_result.stdout or
-        'Sorry, no sensors were detected.' not in sensors_detect_result.stdout"
+        ("No modules to load, skipping modules configuration." not in sensors_detect_result.stdout) and
+        ("Sorry, no sensors were detected." not in sensors_detect_result.stdout) and
+        ("Your system has no sensors" not in sensors_detect_result.stdout)
 
     - name: Copy Python script to remote host
       ansible.builtin.copy:

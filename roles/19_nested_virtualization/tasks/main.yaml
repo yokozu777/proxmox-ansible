@@ -36,15 +36,13 @@
     - name: Check if module is loaded
       ansible.builtin.shell: |
         set -o pipefail
-        lsmod | grep -q "^{{ module_name }}"
+        awk '$1 == "{{ module_name }}" { print $1 }' /proc/modules
       register: module_loaded
       failed_when: false
       changed_when: false
 
     - name: Enable nested virtualization now
       ansible.builtin.shell: |
-        modprobe -r {{ module_name }}
         modprobe {{ module_name }}
-      when:
-        - module_loaded.rc != 0
+      when: module_loaded.rc != 0
       changed_when: module_loaded.rc != 0

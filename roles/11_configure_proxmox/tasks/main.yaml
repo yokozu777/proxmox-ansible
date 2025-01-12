@@ -14,7 +14,8 @@
       echo "File already exists, skipping download.";
     fi
   when: download_windows_guest_tools | default(false)
-  changed_when: false
+  register: download_result_virtio_win
+  changed_when: "'File already exists' not in download_result_virtio_win.stdout"
 
 - name: Download specified ISO files to Proxmox local storage if not exists
   ansible.builtin.shell: |
@@ -25,4 +26,5 @@
     fi
   loop: "{{ iso_file | select('string') | list }}"
   when: download_custom_images | default(false)
-  changed_when: false
+  register: download_result
+  changed_when: "'already exists' not in download_result.stdout"

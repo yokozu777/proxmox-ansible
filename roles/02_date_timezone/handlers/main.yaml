@@ -1,0 +1,7 @@
+- name: Restart chrony
+  ansible.builtin.service:
+    name: chronyd
+    state: restarted
+    enabled: true
+  when: configure_ntp_servers_result.changed
+  changed_when: configure_ntp_servers_result.changed

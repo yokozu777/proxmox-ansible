@@ -14,12 +14,12 @@
 - name: Collect kernel parameters
   ansible.builtin.set_fact:
     kernel_params: >-
-      {{ 'ipv6.disable=1' if disable_ipv6 | default(false) else '' }}
-      {{ default_kernel_params }}
-      {{ iommu_param }}
       {{ 'amd_pstate=' + amd_pstate if pstate_performance | default(false) and 'AuthenticAMD' in global_cpu_vendor else '' }}
       {{ 'intel_pstate=' + intel_pstate if pstate_performance | default(false) and 'GenuineIntel' in global_cpu_vendor else '' }}
       {{ 'nosmt=force' if change_smt | default(false) and smt == 'off' else '' }}
+      {{ 'ipv6.disable=1' if disable_ipv6 | default(false) else '' }}
+      {{ default_kernel_params }}
+      {{ iommu_param }}
 
 - name: Update kernel parameters in GRUB
   ansible.builtin.lineinfile:
@@ -45,9 +45,10 @@
     - name: Merge new kernel parameters with existing ones
       ansible.builtin.set_fact:
         merged_kernel_params: >-
-          {{ (existing_cmdline.content | b64decode | trim).split() |
-             union(kernel_params.split()) |
-             join(" ") }}
+          {{ ((existing_cmdline.content | b64decode | trim | replace('\n', ' ') | replace('\r', ' ') | split(" ")) +
+              (kernel_params.split())) |
+             unique |
+             join(" ") | trim }}
 
     - name: Write updated kernel parameters to EFI
       ansible.builtin.copy:

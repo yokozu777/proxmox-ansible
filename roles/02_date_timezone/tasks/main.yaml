@@ -2,24 +2,28 @@
   community.general.timezone:
     name: "{{ timezone }}"
 
+- name: Get NTP offset
+  ansible.builtin.shell: |
+    set -o pipefail
+    chronyc ntpdata | awk '/Offset/ {print $3}' | sed 's/[+-]//' | sort -nr | head -n 1
+  register: ntp_offset_result
+  changed_when: false
+
 - name: Remove existing pool lines from chrony config
   ansible.builtin.lineinfile:
     path: /etc/chrony/chrony.conf
     regexp: '^pool'
     state: absent
 
-- name: Add NTP servers to chrony config
-  ansible.builtin.lineinfile:
-    path: /etc/chrony/chrony.conf
-    line: "pool {{ item }} iburst"
-    state: present
-  loop: "{{ ntp_servers }}"
-
-- name: Enable chrony
-  ansible.builtin.service:
-    name: chronyd
-    state: restarted
-    enabled: true
+- name: Configure NTP pool servers
+  ansible.builtin.template:
+    src: pool-servers.conf.j2
+    dest: /etc/chrony/conf.d/pool-servers.conf
+    owner: root
+    group: root
+    mode: '0644'
+  register: configure_ntp_servers_result
+  notify: Restart chrony
 
 - name: Force synchronize time using chrony
   ansible.builtin.command: bash -c "chronyc -a makestep && sleep 10"

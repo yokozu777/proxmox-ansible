@@ -1,41 +1,35 @@
-- name: Remove conflicting Fail2Ban config
-  ansible.builtin.file:
-    path: /etc/fail2ban/jail.d/defaults-debian.conf
-    state: absent
+- name: Configure Fail2Ban
   when: fail2ban_enable
+  block:
+    - name: Remove conflicting Fail2Ban config
+      ansible.builtin.file:
+        path: /etc/fail2ban/jail.d/defaults-debian.conf
+        state: absent
 
-- name: Copy jail.local configuration file
-  ansible.builtin.copy:
-    src: jail.local
-    dest: /etc/fail2ban/jail.local
-    owner: root
-    group: root
-    mode: '0644'
-  when: fail2ban_enable
+    - name: Copy jail.local configuration file
+      ansible.builtin.copy:
+        src: jail.local
+        dest: /etc/fail2ban/jail.local
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Fail2ban
 
-- name: Copy proxmox.conf filter configuration file
-  ansible.builtin.copy:
-    src: proxmox.conf
-    dest: /etc/fail2ban/filter.d/proxmox.conf
-    owner: root
-    group: root
-    mode: '0644'
-  when: fail2ban_enable
+    - name: Copy proxmox.conf filter configuration file
+      ansible.builtin.copy:
+        src: proxmox.conf
+        dest: /etc/fail2ban/filter.d/proxmox.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Fail2ban
 
-- name: Update allowipv6 setting in Fail2Ban configuration
-  ansible.builtin.lineinfile:
-    path: /etc/fail2ban/fail2ban.conf
-    regexp: "^#?allowipv6 =.*"
-    line: "allowipv6 = false"
-    state: present
-    backrefs: true
-  when:
-    - fail2ban_enable
-    - disable_ipv6 | default(false)
-
-- name: Restart Fail2ban service
-  ansible.builtin.systemd:
-    name: fail2ban
-    state: restarted
-    enabled: true
-  when: fail2ban_enable
+    - name: Update allowipv6 setting in Fail2Ban configuration
+      ansible.builtin.lineinfile:
+        path: /etc/fail2ban/fail2ban.conf
+        regexp: "^#?allowipv6 =.*"
+        line: "allowipv6 = false"
+        state: present
+        backrefs: true
+      when: disable_ipv6 | default(false)
+      notify: Restart Fail2ban

@@ -1,0 +1,4 @@
+- name: Reload ZFS Modules
+  ansible.builtin.shell: |
+    modprobe -r zfs && modprobe zfs
+  changed_when: false

@@ -1,99 +1,95 @@
-- name: Disable root login
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: "^PermitRootLogin"
-    line: "PermitRootLogin no"
-  when: disable_root_login | default(false)
+- name: Configure SSH settings
+  notify:
+    - Restart ssh
+  block:
+    - name: Disable root login
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^PermitRootLogin"
+        line: "PermitRootLogin no"
+      when: disable_root_login | default(false)
 
-- name: Enforce SSH key passphrases
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: "^#PermitEmptyPasswords"
-    line: "PermitEmptyPasswords no"
+    - name: Enforce SSH key passphrases
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#PermitEmptyPasswords"
+        line: "PermitEmptyPasswords no"
 
-- name: Disable SSH password
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: "^#?PasswordAuthentication"
-    line: "PasswordAuthentication no"
-    state: present
-  when: disable_password_auth | default(false)
+    - name: Disable SSH password
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        state: present
+      when: disable_password_auth | default(false)
 
-- name: Ensure GSSAPIAuthentication is set to no
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^GSSAPIAuthentication'
-    line: 'GSSAPIAuthentication no'
-    state: present
+    - name: Ensure GSSAPIAuthentication is set to no
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^GSSAPIAuthentication'
+        line: 'GSSAPIAuthentication no'
+        state: present
 
-- name: Ensure AddressFamily is set to inet (IPv4 only)
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^AddressFamily'
-    line: 'AddressFamily inet'
-    state: present
+    - name: Ensure AddressFamily is set to inet (IPv4 only)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^AddressFamily'
+        line: 'AddressFamily inet'
+        state: present
 
-- name: Ensure UseDNS is set to no
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^UseDNS'
-    line: 'UseDNS no'
-    state: present
+    - name: Ensure UseDNS is set to no
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^UseDNS'
+        line: 'UseDNS no'
+        state: present
 
-- name: Ensure X11Forwarding is set to no
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^X11Forwarding'
-    line: 'X11Forwarding no'
-    state: present
+    - name: Ensure X11Forwarding is set to no
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^X11Forwarding'
+        line: 'X11Forwarding no'
+        state: present
 
-- name: Comment out AcceptEnv
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^AcceptEnv LANG LC_\*'
-    line: '#AcceptEnv LANG LC_*'
-    state: present
+    - name: Comment out AcceptEnv
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^AcceptEnv LANG LC_\*'
+        line: '#AcceptEnv LANG LC_*'
+        state: present
 
-- name: Disable pam_motd.so (motd dynamic)
-  ansible.builtin.lineinfile:
-    path: /etc/pam.d/sshd
-    regexp: '^session\s+optional\s+pam_motd.so\s+motd=/run/motd.dynamic'
-    line: '#session    optional     pam_motd.so  motd=/run/motd.dynamic'
-    state: present
+    - name: Disable pam_motd.so (motd dynamic)
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/sshd
+        regexp: '^session\s+optional\s+pam_motd.so\s+motd=/run/motd.dynamic'
+        line: '#session    optional     pam_motd.so  motd=/run/motd.dynamic'
+        state: present
 
-- name: Disable pam_motd.so (noupdate)
-  ansible.builtin.lineinfile:
-    path: /etc/pam.d/sshd
-    regexp: '^session\s+optional\s+pam_motd.so\s+noupdate'
-    line: '#session    optional     pam_motd.so noupdate'
-    state: present
+    - name: Disable pam_motd.so (noupdate)
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/sshd
+        regexp: '^session\s+optional\s+pam_motd.so\s+noupdate'
+        line: '#session    optional     pam_motd.so noupdate'
+        state: present
 
-- name: Disable pam_limits.so
-  ansible.builtin.lineinfile:
-    path: /etc/pam.d/sshd
-    regexp: '^session\s+required\s+pam_limits.so'
-    line: '#session    required     pam_limits.so'
-    state: present
+    - name: Disable pam_limits.so
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/sshd
+        regexp: '^session\s+required\s+pam_limits.so'
+        line: '#session    required     pam_limits.so'
+        state: present
 
-- name: Disable pam_env.so
-  ansible.builtin.lineinfile:
-    path: /etc/pam.d/sshd
-    regexp: '^session\s+required\s+pam_env.so'
-    line: '#session    required     pam_env.so user_readenv=1 envfile=/etc/default/locale'
-    state: present
+    - name: Disable pam_env.so
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/sshd
+        regexp: '^session\s+required\s+pam_env.so'
+        line: '#session    required     pam_env.so user_readenv=1 envfile=/etc/default/locale'
+        state: present
 
-- name: Change default SSH port
-  ansible.builtin.lineinfile:
-    path: /etc/ssh/sshd_config
-    regexp: '^#?Port'
-    line: "Port {{ new_ssh_port }}"
-    state: present
-  when: change_default_ssh_port | default(false)
-
-- name: Restart ssh service
-  ansible.builtin.service:
-    name: ssh
-    state: restarted
-
-- name: Reset ssh connection to allow user changes to affect 'current login user'
-  ansible.builtin.meta: reset_connection
+    - name: Change default SSH port
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port'
+        line: "Port {{ new_ssh_port }}"
+        state: present
+      when: change_default_ssh_port | default(false)

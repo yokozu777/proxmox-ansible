@@ -11,7 +11,7 @@
     - scaling_governor is defined
     - ansible_facts.virtualization_role != 'guest'
     - current_governor.stdout.strip() != scaling_governor
-  changed_when: true
+  changed_when: current_governor.stdout.strip() != scaling_governor
 
 - name: Ensure CPU frequency scaling governor persists after reboot
   ansible.builtin.lineinfile:

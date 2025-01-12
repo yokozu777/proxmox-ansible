@@ -1,0 +1,3 @@
+{% for server in ntp_servers %}
+pool {{ server }} iburst
+{% endfor %}

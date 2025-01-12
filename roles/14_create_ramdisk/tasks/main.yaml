@@ -1,8 +1,17 @@
 - name: Manage RAM disk
   when: create_ramfs is defined
   block:
+    - name: Check if ramdisk is in fstab
+      ansible.builtin.command:
+        cmd: grep -q "^tmpfs /mnt/ramdisk tmpfs" /etc/fstab
+      register: var_ram_in_fstab
+      ignore_errors: true
+      changed_when: false
+
     - name: Ensure /mnt/ramdisk directory exists
-      when: create_ramfs | bool
+      when:
+        - create_ramfs | bool
+        - var_ram_in_fstab.rc != 0
       ansible.builtin.file:
         path: /mnt/ramdisk
         state: directory
@@ -16,7 +25,10 @@
         opts: "size={{ ramfs_size }}"
         state: mounted
       when: create_ramfs | bool
-      changed_when: false
+      changed_when: >
+        mount_result.fstype != 'tmpfs' or
+        mount_result.opts != 'size=' + ramfs_size
+      register: mount_result
 
     - name: Unmount and remove ramdisk
       when: not create_ramfs | bool
