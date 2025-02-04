@@ -1,5 +1,5 @@
 - name: Manage RAM disk
-  when: create_ramfs is defined
+  when: create_ramfs | default(false)
   block:
     - name: Check if ramdisk is in fstab
       ansible.builtin.command:
@@ -53,11 +53,11 @@
 
     - name: Add ramdisk storage to Proxmox
       ansible.builtin.command: pvesm add dir ramdisk --path /mnt/ramdisk --content images
-      when: create_ramfs | bool and not ('ramdisk' in pvesm_status.stdout)
+      when: create_ramfs | default(false) | bool and not ('ramdisk' in pvesm_status.stdout)
       changed_when: "'already exists' not in pvesm_status.stdout"
 
     - name: Remove ramdisk storage from Proxmox
       ansible.builtin.command: pvesm remove ramdisk
-      when: not create_ramfs | bool and 'ramdisk' in pvesm_status.stdout
+      when: not create_ramfs | default(false) | bool and 'ramdisk' in pvesm_status.stdout
       failed_when: false
       changed_when: "'ramdisk' in pvesm_status.stdout"
