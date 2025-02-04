@@ -1,7 +1,7 @@
 - name: Change root password
   ansible.builtin.user:
     name: root
-    password: "{{ new_root_password | password_hash('sha512') }}"
+    password: "{{ new_root_password | string | password_hash('sha512') }}"
   when: change_root_password | default(false)
 
 - name: Determine the group based on the distribution
@@ -21,7 +21,7 @@
 
 - name: Hash password
   ansible.builtin.set_fact:
-    hashed_password: "{{ system_user_password | password_hash('sha512') }}"
+    hashed_password: "{{ system_user_password | string | password_hash('sha512') }}"
 
 - name: Set password for the user
   ansible.builtin.user:
