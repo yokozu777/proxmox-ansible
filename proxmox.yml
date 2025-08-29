@@ -5,7 +5,7 @@
     - name: Init
       ansible.builtin.include_role:
         name: 00_init
-
+        
     - name: Backup etc
       ansible.builtin.include_role:
         name: 01_backup_etc
@@ -89,6 +89,18 @@
     - name: Move logs to tmpfs
       ansible.builtin.include_role:
         name: 21_logs_tmpfs
+
+    - name: Configure mail
+      ansible.builtin.include_role:
+        name: 22_mail    
+
+    - name: Configure certificates
+      ansible.builtin.include_role:
+        name: 23_certificates
+
+    - name: Configure ACME
+      ansible.builtin.include_role:
+        name: 24_acme
 
     - name: Update system
       ansible.builtin.include_role:

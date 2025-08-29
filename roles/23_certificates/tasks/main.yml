@@ -1,0 +1,79 @@
+---
+- name: Download CA certificate
+  ansible.builtin.shell: wget --no-check-certificate "{{ ca_certificate_url }}" -O "/tmp/{{ ca_certificate_name }}"
+  when: 
+    - certificates_configure | bool
+    - ca_certificate_url is defined
+    - ca_certificate_url | length > 0
+    - not ca_certificate_url.startswith('#')
+  changed_when: false
+
+- name: Copy CA certificate to system certificates directory
+  ansible.builtin.copy:
+    src: "/tmp/{{ ca_certificate_name }}"
+    dest: "/usr/local/share/ca-certificates/{{ ca_certificate_name }}"
+    mode: '0644'
+    remote_src: true
+  when: 
+    - certificates_configure | bool
+    - ca_certificate_url is defined
+    - ca_certificate_url | length > 0
+    - not ca_certificate_url.startswith('#')
+    - ca_certificate_name is defined
+    - ca_certificate_name | length > 0
+    - not ca_certificate_name.startswith('#')
+
+- name: Update CA certificates
+  ansible.builtin.command: update-ca-certificates
+  when: 
+    - certificates_configure | bool
+    - (ca_certificate_url is defined and ca_certificate_url | length > 0 and not ca_certificate_url.startswith('#')) or
+      (custom_certs_dir is defined and custom_certs_dir | length > 0)
+  changed_when: false
+
+- name: Clean up temporary certificate file
+  ansible.builtin.file:
+    path: "/tmp/{{ ca_certificate_name }}"
+    state: absent
+  when: 
+    - certificates_configure | bool
+    - ca_certificate_url is defined
+    - ca_certificate_url | length > 0
+    - not ca_certificate_url.startswith('#')
+
+- name: Check if custom certificates directory exists
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/{{ custom_certs_dir }}"
+  register: custom_certs_dir_stat
+  when: certificates_configure | bool
+  delegate_to: localhost
+
+- name: Copy all files from custom certificates directory to /tmp
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/{{ custom_certs_dir }}/"
+    dest: "/tmp/"
+    mode: '0644'
+    remote_src: false
+  when: 
+    - certificates_configure | bool
+    - custom_certs_dir_stat.stat.exists
+    - custom_certs_dir_stat.stat.isdir | default(false)
+
+- name: Copy custom certificates to system certificates directory
+  ansible.builtin.copy:
+    src: "/tmp/"
+    dest: "/usr/local/share/ca-certificates/"
+    mode: '0644'
+    remote_src: true
+  when: 
+    - certificates_configure | bool
+    - custom_certs_dir_stat.stat.exists
+    - custom_certs_dir_stat.stat.isdir | default(false)
+
+- name: Update CA certificates after custom certs
+  ansible.builtin.command: update-ca-certificates
+  when: 
+    - certificates_configure | bool
+    - custom_certs_dir_stat.stat.exists
+    - custom_certs_dir_stat.stat.isdir | default(false)
+  changed_when: false

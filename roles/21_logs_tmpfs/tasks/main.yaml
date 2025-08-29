@@ -59,7 +59,7 @@
     path: /var/log
     src: tmpfs
     fstype: tmpfs
-    opts: "size={{ tmpfs_logs_size }},mode=0755,noexec,uid=0,gid=0"
+    opts: "size={{ tmpfs_logs_size }},mode=0755,noexec,uid=0,gid=0,noatime"
     state: mounted
   when: move_logs_tmpfs and var_log_in_fstab.rc != 0
 
@@ -68,7 +68,7 @@
     path: /var/log/pveproxy
     src: tmpfs
     fstype: tmpfs
-    opts: "size={{ tmpfs_logs_pveproxy_size }},mode=0755,noexec,uid=33,gid=33"
+    opts: "size={{ tmpfs_logs_pveproxy_size }},mode=0755,noexec,uid=33,gid=33,noatime"
     state: mounted
   when: move_logs_tmpfs and pveproxy_log_in_fstab.rc != 0
 
@@ -77,7 +77,7 @@
     path: /var/log/nginx
     src: tmpfs
     fstype: tmpfs
-    opts: "size={{ tmpfs_logs_nginx_size }},mode=0755,noexec,uid=0,gid=4"
+    opts: "size={{ tmpfs_logs_nginx_size }},mode=0755,noexec,uid=0,gid=4,noatime"
     state: mounted
   when: move_logs_tmpfs and nginx_enable and nginx_log_in_fstab.rc != 0
 

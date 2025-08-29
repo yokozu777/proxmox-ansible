@@ -50,4 +50,6 @@
 
 - name: Extract Proxmox major version
   ansible.builtin.set_fact:
-    proxmox_pve_major: "{{ proxmox_pveversion_info.stdout.split('/')[1].split('.')[0] | int }}"
+    proxmox_pve_major:
+      "{{ proxmox_pveversion_info.stdout.split('/')[1].split('.')[0] | int if \
+      proxmox_pveversion_info.stdout is defined and proxmox_pveversion_info.stdout.split('/') | length > 1  else 9 }}"

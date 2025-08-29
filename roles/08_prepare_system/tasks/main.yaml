@@ -77,7 +77,7 @@
     backrefs: true
     state: present
   notify: Restart pve-firewall
-  when: disable_ipv6 | default(false)
+  when: disable_ipv6 | default(false) and (proxmox_pve_major | int) <= 8
 
 - name: Manage specified services
   ansible.builtin.systemd:

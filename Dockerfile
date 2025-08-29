@@ -1,10 +1,10 @@
 ARG PYTHON_VERSION=3.13-alpine
-ARG ANSIBLE_VERSION=11.1.0
+ARG ANSIBLE_VERSION=11.9.0
 
 FROM python:${PYTHON_VERSION}
 ARG ANSIBLE_VERSION
 RUN apk add --no-cache bash curl sshpass openssh-client ; \
-    pip install ansible==${ANSIBLE_VERSION} passlib; \
+    pip install ansible==${ANSIBLE_VERSION} passlib ansible-lint ansible-review yamllint; \
     pip cache purge && rm -rf /var/cache/apk/* ; \
     #&& \
     cd /usr/local/lib/python3.13/site-packages/ansible_collections/ && \
@@ -19,5 +19,8 @@ RUN apk add --no-cache bash curl sshpass openssh-client ; \
            digitalocean okd grafana mysql microsoft telekom_mms
 
 RUN echo "Host *\n    StrictHostKeyChecking no\n    UserKnownHostsFile=/dev/null" >> /etc/ssh/ssh_config
+#RUN mkdir -p /opt/proxmox && chmod 755 /opt/proxmox
 WORKDIR /opt/proxmox
 CMD ["bash", "-c", "chmod -R 755 /opt/proxmox && /bin/bash"] 
+
+#ansible-lint yamllint pyOpenSSL pyyaml jmespath passlib

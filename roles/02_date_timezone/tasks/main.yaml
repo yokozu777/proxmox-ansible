@@ -1,6 +1,16 @@
 - name: Set timezone
-  community.general.timezone:
-    name: "{{ timezone }}"
+  ansible.builtin.command: timedatectl set-timezone "{{ timezone }}"
+  register: timezone_result
+  changed_when: timezone_result.rc == 0
+  failed_when: timezone_result.rc != 0
+
+- name: Configure timezone data automatically
+  ansible.builtin.command: dpkg-reconfigure -f noninteractive tzdata
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  register: tzdata_result
+  changed_when: tzdata_result.rc == 0
+  failed_when: tzdata_result.rc != 0
 
 - name: Get NTP offset
   ansible.builtin.shell: |
@@ -24,6 +34,11 @@
     mode: '0644'
   register: configure_ntp_servers_result
   notify: Restart chrony
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+  when: >
+    configure_ntp_servers_result.changed
 
 - name: Force synchronize time using chrony
   ansible.builtin.command: bash -c "chronyc -a makestep && sleep 10"

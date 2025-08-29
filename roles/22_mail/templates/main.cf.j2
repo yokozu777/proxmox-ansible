@@ -1,0 +1,35 @@
+myhostname={{ ansible_fqdn }}
+smtpd_banner = $myhostname ESMTP $mail_name (Debian/GNU)
+biff = no
+
+# appending .domain is the MUA's job.
+append_dot_mydomain = no
+
+# Uncomment the next line to generate "delayed mail" warnings
+#delay_warning_time = 4h
+
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+mydestination = $myhostname, localhost.$mydomain, localhost
+#relayhost =
+relayhost = [{{ mail_relay_host }}]:{{ mail_relay_port }}
+{% if mail_relay_port == "465" %}
+smtp_tls_wrappermode = yes
+smtp_tls_security_level = encrypt
+{% elif mail_relay_port == "587" %}
+smtp_tls_wrappermode = no
+smtp_tls_security_level = encrypt
+{% endif %}
+smtp_sasl_auth_enable = {{ mail_sasl_auth_enable | lower }}
+smtp_sasl_security_options = noanonymous
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+
+smtp_generic_maps = hash:/etc/postfix/generic
+
+mynetworks = 127.0.0.0/8
+inet_interfaces = loopback-only
+recipient_delimiter = +
+
+compatibility_level = 2
+
+cyrus_sasl_config_path = /etc/postfix/sasl

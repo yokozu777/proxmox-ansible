@@ -1,0 +1,117 @@
+---
+- name: Install Postfix and SASL packages
+  ansible.builtin.apt:
+    name:
+      - postfix
+      - libsasl2-modules
+      - ca-certificates
+    state: present
+    update_cache: true
+  when: mail_configure | bool
+
+- name: Configure Postfix main.cf
+  ansible.builtin.template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+    mode: '0644'
+    backup: true
+  when: mail_configure | bool
+  notify: restart postfix
+
+- name: Create SASL password file
+  ansible.builtin.template:
+    src: sasl_passwd.j2
+    dest: /etc/postfix/sasl_passwd
+    mode: '0600'
+    owner: root
+    group: root
+    backup: true
+  when: mail_configure | bool and mail_sasl_auth_enable | bool
+  notify: restart postfix
+
+- name: Create SASL password hash file
+  ansible.builtin.command: postmap /etc/postfix/sasl_passwd
+  when: mail_configure | bool and mail_sasl_auth_enable | bool
+  notify: restart postfix
+
+- name: Set proper permissions for SASL password file
+  ansible.builtin.file:
+    path: /etc/postfix/sasl_passwd.db
+    mode: '0600'
+    owner: root
+    group: root
+  when: mail_configure | bool and mail_sasl_auth_enable | bool
+
+- name: Remove plain text SASL password file
+  ansible.builtin.file:
+    path: /etc/postfix/sasl_passwd
+    state: absent
+  when: mail_configure | bool and mail_sasl_auth_enable | bool
+
+- name: Create SASL configuration directory
+  ansible.builtin.file:
+    path: /etc/postfix/sasl
+    state: directory
+    mode: '0755'
+    owner: root
+    group: root
+  when: mail_configure | bool
+
+- name: Configure SASL
+  ansible.builtin.copy:
+    content: |
+      pwcheck_method: saslauthd
+      mech_list: plain login
+    dest: /etc/postfix/sasl/smtpd.conf
+    mode: '0644'
+    owner: root
+    group: root
+  when: mail_configure | bool
+  notify: restart postfix
+
+- name: Ensure Postfix is enabled and running
+  ansible.builtin.service:
+    name: postfix
+    state: started
+    enabled: true
+  when: mail_configure | bool
+
+- name: Set root user email in Proxmox
+  ansible.builtin.command: pveum usermod root@pam --email {{ mail_root_email }}
+  when: mail_configure | bool
+  register: pveum_email_result
+  changed_when: pveum_email_result.rc == 0
+  failed_when: pveum_email_result.rc != 0
+
+- name: Create generic maps file
+  ansible.builtin.template:
+    src: generic.j2
+    dest: /etc/postfix/generic
+    mode: '0600'
+    owner: root
+    group: root
+    backup: true
+  when: mail_configure | bool
+  notify: reload postfix
+
+- name: Compile generic maps
+  ansible.builtin.command: postmap /etc/postfix/generic
+  when: mail_configure | bool
+  notify: reload postfix
+
+- name: Set proper permissions for generic maps files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    mode: '0600'
+    owner: root
+    group: root
+  loop:
+    - /etc/postfix/generic
+    - /etc/postfix/generic.db
+  when: mail_configure | bool
+
+- name: Send test email
+  ansible.builtin.shell: echo "Test mail from Proxmox {{ ansible_hostname }}" | mail -s "Test from Proxmox" {{ mail_test_recipient }}
+  when: mail_configure | bool and mail_send_test | bool
+  changed_when: false
+  register: test_mail_result

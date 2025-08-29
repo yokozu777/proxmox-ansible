@@ -1,0 +1,40 @@
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+    
+    sendfile        on;
+    tcp_nopush      on;
+    tcp_nodelay     on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+    
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}
+
+# Stream configuration for Proxmox
+stream {
+    log_format stream_basic '$remote_addr:$remote_port -> $server_addr:$server_port '
+                            '$protocol $status $bytes_sent $bytes_received $session_time';
+    access_log /var/log/nginx/proxmox-stream.access.log stream_basic;
+    error_log  /var/log/nginx/proxmox-stream.error.log;
+    
+    upstream proxmox_tls {
+        server 127.0.0.1:8006;
+    }
+
+    server {
+        listen 443;
+        proxy_pass proxmox_tls;
+    }
+}

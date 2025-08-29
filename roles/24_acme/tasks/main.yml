@@ -1,0 +1,157 @@
+---
+- name: Check if default ACME account exists
+  ansible.builtin.shell: pvenode acme account list | grep -q "{{ acme_account_name }}"
+  when: 
+    - acme_configure | bool
+    - acme_account_type == "default"
+  register: acme_default_exists
+  changed_when: false
+  failed_when: false
+
+- name: Register default ACME account
+  ansible.builtin.shell: |
+    pvenode acme account register {{ acme_account_name }} {{ acme_email }} --directory {{ acme_directory }}
+  when: 
+    - acme_configure | bool
+    - acme_account_type == "default"
+    - acme_default_exists.rc != 0
+  register: acme_default_result
+  changed_when: acme_default_result.rc == 0
+  failed_when: acme_default_result.rc != 0
+
+- name: Check if staging ACME account exists
+  ansible.builtin.shell: pvenode acme account list | grep -q "{{ acme_account_name }}"
+  when: 
+    - acme_configure | bool
+    - acme_account_type == "staging"
+  register: acme_staging_exists
+  changed_when: false
+  failed_when: false
+
+- name: Register staging ACME account
+  ansible.builtin.shell: |
+    pvenode acme account register {{ acme_account_name }} {{ acme_email }} --directory {{ acme_staging_directory }}
+  when: 
+    - acme_configure | bool
+    - acme_account_type == "staging"
+    - acme_staging_exists.rc != 0
+  register: acme_staging_result
+  changed_when: acme_staging_result.rc == 0
+  failed_when: acme_staging_result.rc != 0
+
+- name: Check if custom ACME account exists
+  ansible.builtin.shell: pvenode acme account list | grep -q "{{ acme_account_name }}"
+  when: 
+    - acme_configure | bool
+    - acme_account_type == "custom"
+  register: acme_custom_exists
+  changed_when: false
+  failed_when: false
+
+- name: Register custom ACME account
+  ansible.builtin.shell: |
+    pvenode acme account register {{ acme_account_name }} {{ acme_email }} --directory {{ acme_custom_directory }}
+  when: 
+    - acme_configure | bool
+    - acme_account_type == "custom"
+    - acme_custom_exists.rc != 0
+  register: acme_custom_result
+  changed_when: acme_custom_result.rc == 0
+  failed_when: acme_custom_result.rc != 0
+
+- name: Check if ACME plugin exists
+  ansible.builtin.shell: pvenode acme plugin list | grep -q "{{ acme_plugin_id }}"
+  when: acme_configure | bool
+  register: acme_plugin_exists
+  changed_when: false
+  failed_when: false
+
+- name: Add ACME plugin
+  ansible.builtin.shell: |
+    pvenode acme plugin add {{ acme_plugin_type }} {{ acme_plugin_id }} --nodes {{ acme_plugin_nodes }}
+  when: 
+    - acme_configure | bool
+    - acme_plugin_exists.rc != 0
+  register: acme_plugin_result
+  changed_when: acme_plugin_result.rc == 0
+  failed_when: acme_plugin_result.rc != 0
+
+- name: Configure ACME domain and plugin
+  ansible.builtin.shell: |
+    pvenode config set --acmedomain0 domain={{ acme_domain }},plugin={{ acme_plugin_id }}
+  when: acme_configure | bool
+  register: acme_domain_config_result
+  changed_when: acme_domain_config_result.rc == 0
+  failed_when: acme_domain_config_result.rc != 0
+
+- name: Set ACME account for node
+  ansible.builtin.shell: |
+    pvenode config set --acme account={{ acme_account_name }}
+  when: acme_configure | bool
+  register: acme_account_config_result
+  changed_when: acme_account_config_result.rc == 0
+  failed_when: acme_account_config_result.rc != 0
+
+- name: Check if ACME certificate already exists
+  ansible.builtin.shell: pvenode acme cert list
+  when: 
+    - acme_configure | bool
+    - acme_order_renew | bool
+  register: acme_cert_list_result
+  changed_when: false
+  failed_when: false
+
+- name: Set certificate exists flag
+  ansible.builtin.set_fact:
+    acme_cert_exists: "{{ acme_domain in acme_cert_list_result.stdout_lines | default([]) }}"
+  when: 
+    - acme_configure | bool
+    - acme_order_renew | bool
+    - acme_cert_list_result is defined
+
+- name: Check if nginx is running
+  ansible.builtin.service_facts:
+  when: 
+    - acme_configure | bool
+    - acme_order_renew | bool
+    - not acme_cert_exists | bool
+
+- name: Stop nginx if running (before cert order)
+  ansible.builtin.service:
+    name: nginx
+    state: stopped
+  when: 
+    - acme_configure | bool
+    - acme_order_renew | bool
+    - not acme_cert_exists | bool
+    - ansible_facts.services['nginx.service'].state == 'running'
+  register: nginx_stopped_before
+
+- name: Order ACME certificate
+  ansible.builtin.shell: pvenode acme cert order --force
+  when: 
+    - acme_configure | bool
+    - acme_order_renew | bool
+    - not acme_cert_exists | bool
+  register: acme_cert_order_result
+  changed_when: acme_cert_order_result.rc == 0
+  failed_when: acme_cert_order_result.rc != 0
+
+- name: Restart pveproxy service
+  ansible.builtin.service:
+    name: pveproxy
+    state: restarted
+  when: 
+    - acme_configure | bool
+    - acme_order_renew | bool
+
+- name: Start nginx if it was stopped before (after cert order)
+  ansible.builtin.service:
+    name: nginx
+    state: started
+  when: 
+    - acme_configure | bool
+    - acme_order_renew | bool
+    - not acme_cert_exists | bool
+    - nginx_stopped_before is defined
+    - nginx_stopped_before.changed | bool

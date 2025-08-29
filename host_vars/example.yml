@@ -47,6 +47,37 @@ ntp_servers:
   - 2.pfsense.pool.ntp.org # Primary NTP server.
   - 1.pfsense.pool.ntp.org # Tertiary NTP server.
 
+# Mail configuration
+mail_configure: false
+mail_relay_host: "mail.example.com"
+mail_relay_port: "465" # 465, 587, 25
+mail_sasl_auth_enable: "yes"
+mail_username: "admin@example.com" # for auth smtp
+mail_root_email: "admin@example.com" # send proxmox notifications to this email
+mail_password: "example*"
+mail_send_test: true
+mail_test_recipient: "test@example.com"
+
+# Certificates configuration defaults
+certificates_configure: false
+ca_certificate_url: "https://ca.example.com:8443/roots.pem" # If you use custom CA, you can specify the URL of the CA certificate.
+ca_certificate_name: "example.crt" # If you use custom CA, you can specify the name of the CA certificate.
+custom_certs_dir: "root_ca_certs" # custom root certificates directory in root project, certs will be in crt format
+
+# ACME configuration defaults
+acme_configure: false
+acme_account_type: "custom"  # default, staging, custom
+acme_account_name: "example"
+acme_email: "admin@example.com"
+acme_directory: "https://acme-v02.api.letsencrypt.org/directory"
+acme_staging_directory: "https://acme-staging-v02.api.letsencrypt.org/directory"
+acme_custom_directory: "https://ca.example.com:8443/acme/acme/directory"
+acme_plugin_id: "http01-local" # Plugin ID for ACME.
+acme_plugin_type: "standalone"  # standalone (HTTP-01) or dns (DNS-01)
+acme_plugin_nodes: "pve-real" # Nodes for ACME plugin.  
+acme_domain: "pve-real.example.com" # Domain for ACME certificate.
+acme_order_renew: true
+
 # Repository Management
 add_backports_repo: false # Add or remove the Debian backports repository.
 add_pvetest_repo: false # Add or remove the Proxmox test repository.

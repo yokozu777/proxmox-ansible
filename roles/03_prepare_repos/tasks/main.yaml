@@ -6,6 +6,9 @@
     - /etc/apt/sources.list
     - /etc/apt/sources.list.d/pve-enterprise.list
     - /etc/apt/sources.list.d/ceph.list
+    - /etc/apt/sources.list.d/pve-enterprise.sources
+    - /etc/apt/sources.list.d/ceph.sources
+    - /etc/apt/sources.list.d/debian.sources
 
 - name: Configure APT repositories
   block:
@@ -29,7 +32,7 @@
         path: /etc/apt/sources.list.d/pve-sources.list
         regexp: >-
           ^deb http://deb.debian.org/debian {{ ansible_distribution_release }}-backports main contrib non-free
-          {% if (proxmox_pve_major | int) == 8 %} non-free-firmware{% endif %}
+          {% if (proxmox_pve_major | int) >= 8 %} non-free-firmware{% endif %}
         state: absent
       when: not add_backports_repo | bool
       register: remove_backports_repo_result
