@@ -5,7 +5,21 @@ This playbook is designed to automate the configuration, optimization, and manag
 
 ---
 
+## v1.1.0
+
+### Improvements
+- Nginx performance and date/timezone configuration optimizations.
+
+### Compatibility
+- Added support for **Proxmox VE 9**.
+
+### New Roles
+- **Configure Mail**
+- **Configure Certificates**
+- **Configure ACME** (Let’s Encrypt or custom CA)
+
 ## Quickstart
+
 
 ### Clone the repository:
 ```bash
