@@ -136,9 +136,10 @@ The playbook is compatible with **Proxmox VE versions 7 and 8** and has been tes
 - Enable nested virtualization.
 - Manage Hyper-Threading (enable or disable).
 
-### ISO Image Management
+### ISO Image and LXC Management
 - Automatically download ISO images for Windows VirtIO drivers or custom images.
 - Save ISO images to a specified directory.
+- Download locally specified LXC images
 
 ### SSH Configuration
 - Change the SSH port.
