@@ -28,3 +28,16 @@
   when: download_custom_images | default(false)
   register: download_result
   changed_when: "'already exists' not in download_result.stdout"
+
+- name: Download lxc containers to Proxmox local storage if not exists
+  ansible.builtin.shell: |
+    pkgs=`pveam list local | awk '{ print $1 }' | grep local`
+    if [ ! `echo $pkgs | grep {{ item }}` ]; then
+      pveam download local {{ item }}
+    else
+      echo "LXC {{ item }} already exists, skipping download.";
+    fi
+  loop: "{{ lxc_images | select('string') | list }}"
+  when: download_lxc | default(false)
+  register: lxc_result
+  changed_when: "'already exists' not in lxc_result.stdout"

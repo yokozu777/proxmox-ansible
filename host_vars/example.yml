@@ -217,3 +217,10 @@ iso_file:
   - "https://cdn.openbsd.org/pub/OpenBSD/7.6/amd64/floppy76.img" # Example custom ISO file.
   - "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-12.8.0-amd64-netinst.iso" # Example Debian ISO file.
 storage_path: "/var/lib/vz/template/iso" # Default storage path for ISOs.
+
+# LXC management
+download_lxc: false
+# available images can be checked using "pveam available" command
+lxc_images:
+  - "alpine-3.23-default_20260116_amd64.tar.xz"
+  - "rockylinux-10-default_20251001_amd64.tar.xz"
