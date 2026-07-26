@@ -14,7 +14,7 @@ This report provides a comprehensive security audit summary for the Proxmox host
 
 ## SSH Security Status
 
-{% if audit_ssh_config %}
+{% if audit_ssh_config | default(true) %}
 ### SSH Configuration
 - **SSH Port:** {{ new_ssh_port | default(22) }}
 - **Root Login:** {{ 'Disabled' if disable_root_login else 'Enabled' }}
@@ -38,7 +38,7 @@ This report provides a comprehensive security audit summary for the Proxmox host
 
 ## Firewall Security Status
 
-{% if audit_firewall_rules %}
+{% if audit_firewall_rules | default(true) %}
 ### Firewall Rules
 ```
 {{ firewall_audit.stdout | default('Firewall audit information not available') }}
@@ -56,7 +56,7 @@ This report provides a comprehensive security audit summary for the Proxmox host
 
 ## User Security Status
 
-{% if audit_user_permissions %}
+{% if audit_user_permissions | default(true) %}
 ### User Accounts
 ```
 {{ user_audit.stdout | default('User audit information not available') }}
@@ -74,7 +74,7 @@ This report provides a comprehensive security audit summary for the Proxmox host
 
 ## Service Security Status
 
-{% if audit_service_status %}
+{% if audit_service_status | default(true) %}
 ### Critical Services
 ```
 {{ service_audit.stdout | default('Service audit information not available') }}
@@ -142,9 +142,9 @@ This report provides a comprehensive security audit summary for the Proxmox host
 
 ### Risk Factors
 - **SSH Security:** {{ 'Secure' if (disable_root_login and disable_password_auth) else 'Needs Improvement' }}
-- **Firewall:** {{ 'Configured' if audit_firewall_rules else 'Not Audited' }}
-- **User Management:** {{ 'Audited' if audit_user_permissions else 'Not Audited' }}
-- **Service Security:** {{ 'Audited' if audit_service_status else 'Not Audited' }}
+- **Firewall:** {{ 'Configured' if audit_firewall_rules | default(true) else 'Not Audited' }}
+- **User Management:** {{ 'Audited' if audit_user_permissions | default(true) else 'Not Audited' }}
+- **Service Security:** {{ 'Audited' if audit_service_status | default(true) else 'Not Audited' }}
 
 ---
 
