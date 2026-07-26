@@ -1,5 +1,5 @@
 - name: Clean up old documentation files
-  when: cleanup_old_reports
+  when: cleanup_old_reports | default(false)
   block:
     - name: Find old documentation files
       ansible.builtin.find:
@@ -30,7 +30,7 @@
       changed_when: false
 
 - name: Archive old documentation
-  when: cleanup_old_reports and old_docs.files | length > 0
+  when: cleanup_old_reports | default(false) and old_docs.files | length > 0
   block:
     - name: Create archive directory
       ansible.builtin.file:
@@ -52,7 +52,7 @@
       changed_when: false
 
 - name: Log cleanup operation
-  when: cleanup_old_reports
+  when: cleanup_old_reports | default(false)
   block:
     - name: Create cleanup log
       ansible.builtin.copy:
@@ -76,7 +76,7 @@
         group: root
 
 - name: Update documentation index after cleanup
-  when: cleanup_old_reports
+  when: cleanup_old_reports | default(false)
   block:
     - name: Regenerate report index
       ansible.builtin.template:
