@@ -13,7 +13,7 @@ network_diagram:
       ip: "{{ ansible_default_ipv4.address | default('Unknown') }}"
       interfaces: "{{ ansible_interfaces | list }}"
     
-    {% if include_vm_networks %}
+    {% if include_vm_networks | default(true) %}
     - id: "vm_network"
       label: "VM Network"
       type: "network"
@@ -21,7 +21,7 @@ network_diagram:
       details: "{{ vm_network_info.stdout | default('No VM network information') }}"
     {% endif %}
     
-    {% if include_storage_networks %}
+    {% if include_storage_networks | default(true) %}
     - id: "storage_network"
       label: "Storage Network"
       type: "network"
@@ -33,15 +33,15 @@ network_diagram:
     - from: "host"
       to: "vm_network"
       type: "bridge"
-      when: include_vm_networks
+      when: include_vm_networks | default(true)
     
     - from: "host"
       to: "storage_network"
       type: "bridge"
-      when: include_storage_networks
+      when: include_storage_networks | default(true)
   
   network_details:
     configuration: "{{ network_config.stdout | default('Network configuration not available') }}"
     bridge_info: "{{ bridge_info.stdout | default('Bridge information not available') }}"
-    vm_networks: "{{ vm_network_info.stdout | default('VM network information not available') if include_vm_networks | default(false) else 'Not included' }}"
-    storage_networks: "{{ storage_network_info.stdout | default('Storage network information not available') if include_storage_networks | default(false) else 'Not included' }}"
+    vm_networks: "{{ vm_network_info.stdout | default('VM network information not available') if include_vm_networks | default(true) else 'Not included' }}"
+    storage_networks: "{{ storage_network_info.stdout | default('Storage network information not available') if include_storage_networks | default(true) else 'Not included' }}"

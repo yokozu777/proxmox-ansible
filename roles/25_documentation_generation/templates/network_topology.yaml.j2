@@ -14,17 +14,17 @@ network_topology:
     information: "{{ bridge_info.stdout | default('Bridge information not available') }}"
   
   virtual_machines:
-    {% if include_vm_networks %}
+    {% if include_vm_networks | default(true) %}
     network_configuration: "{{ vm_network_info.stdout | default('VM network information not available') }}"
     {% endif %}
   
   storage_networks:
-    {% if include_storage_networks %}
+    {% if include_storage_networks | default(true) %}
     configuration: "{{ storage_network_info.stdout | default('Storage network information not available') }}"
     {% endif %}
   
   network_summary:
     total_interfaces: "{{ ansible_interfaces | length }}"
     bridge_count: "{{ (bridge_info.stdout | regex_search('bridge name')) | length if bridge_info.stdout is defined else 0 }}"
-    vm_networks: "{{ include_vm_networks | default(false) }}"
-    storage_networks: "{{ include_storage_networks | default(false) }}"
+    vm_networks: "{{ include_vm_networks | default(true) }}"
+    storage_networks: "{{ include_storage_networks | default(true) }}"

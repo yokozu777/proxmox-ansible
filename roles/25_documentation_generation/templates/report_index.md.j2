@@ -140,7 +140,7 @@
 ## 📅 Maintenance
 
 ### Automatic Cleanup
-- **Retention Period:** {{ reports_retention_days }} days
+- **Retention Period:** {{ reports_retention_days | default(30) }} days
 - **Cleanup Log:** [cleanup.log](cleanup.log)
 - **Cleanup Summary:** [cleanup_summary.md](cleanup_summary.md)
 
